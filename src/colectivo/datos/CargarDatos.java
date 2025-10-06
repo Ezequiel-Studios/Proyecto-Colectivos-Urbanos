@@ -11,8 +11,24 @@ import colectivo.modelo.Tramo;
 public class CargarDatos {
 
 	public static Map<Integer, Parada> cargarParadas(String nombreArchivo) throws IOException {
-
-		return null;
+		Map<Integer, Parada> paradas = new TreeMap<Integer, Parada>();
+		
+		try(BufferedReader br = new BufferedReader(new FileReader(nombreArchivo))) {
+			String linea;
+			while((linea = br.readLine()) != null) {
+				if(linea.trim().isEmpty()) 
+					continue;
+				String partes[] = linea.split(";");
+				int codigo = Integer.parseInt(partes[0].trim());
+	            String direccion = partes[1].trim();
+	            double latitud = Double.parseDouble(partes[2].trim());
+	            double longitud = Double.parseDouble(partes[3].trim());
+	            
+	            Parada parada = new Parada(codigo, direccion, latitud, longitud);
+	            paradas.put(codigo, parada);
+			}
+		}
+		return paradas;
 	}
 
 	public static Map<String, Tramo> cargarTramos(String nombreArchivo, Map<Integer, Parada> paradas)
@@ -26,3 +42,4 @@ public class CargarDatos {
 	}
 
 }
+
