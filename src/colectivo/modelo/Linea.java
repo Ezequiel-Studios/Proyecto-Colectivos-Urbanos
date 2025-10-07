@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Linea {
- 
+
 	private String codigo;
 	private String nombre;
 	private List<Parada> paradas;

@@ -22,7 +22,7 @@ public class Parada {
 		this.codigo = codigo;
 		this.direccion = direccion;
 		this.latitud = latitud;
-		this.longitud = longitud; 
+		this.longitud = longitud;
 		this.lineas = new ArrayList<Linea>();
 		this.paradaCaminando = new ArrayList<Parada>();
 	}
