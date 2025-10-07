@@ -4,30 +4,49 @@ import java.time.LocalTime;
 import java.util.List;
 
 public class Recorrido {
-    private String codigo;
-    private LocalTime horaSalida;
-    private int duracion; // en minutos
-    private List<Parada> paradas;
 
-    public Recorrido(String codigo, LocalTime horaSalida, int duracion, List<Parada> paradas) {
-        this.codigo = codigo;
-        this.horaSalida = horaSalida;
-        this.duracion = duracion;
-        this.paradas = paradas;
-    }
+	private Linea linea;
+	private List<Parada> paradas;
+	private LocalTime horaSalida;
+	private int duracion;
 
-    public String getCodigo() { return codigo; }
-    public LocalTime getHoraSalida() { return horaSalida; }
-    public int getDuracion() { return duracion; }
-    public List<Parada> getParadas() { return paradas; }
+	public Recorrido(Linea linea, List<Parada> paradas, LocalTime horaSalida, int duracion) {
+		super();
+		this.linea = linea;
+		this.paradas = paradas;
+		this.horaSalida = horaSalida;
+		this.duracion = duracion;
+	}
 
-    @Override
-    public String toString() {
-        return "Recorrido{" +
-                "codigo='" + codigo + '\'' +
-                ", horaSalida=" + horaSalida +
-                ", duracion=" + duracion +
-                ", paradas=" + paradas +
-                '}';
-    }
+	public Linea getLinea() {
+		return linea;
+	}
+
+	public void setLinea(Linea linea) {
+		this.linea = linea;
+	}
+
+	public List<Parada> getParadas() {
+		return paradas;
+	}
+
+	public void setParadas(List<Parada> paradas) {
+		this.paradas = paradas;
+	}
+
+	public LocalTime getHoraSalida() {
+		return horaSalida;
+	}
+
+	public void setHoraSalida(LocalTime horaSalida) {
+		this.horaSalida = horaSalida;
+	}
+
+	public int getDuracion() {
+		return duracion;
+	}
+
+	public void setDuracion(int duracion) {
+		this.duracion = duracion;
+	}
 }
