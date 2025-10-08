@@ -1,16 +1,16 @@
-Código de línea;Día de la semana;Hora inicio recorrido;
+Codigo de linea;Dia de la semana;Hora inicio recorrido;
 
 L1I;1;06:00;
 L1I;1;06:30;
 
-Día de la semana: 
+Dia de la semana: 
 
 1 = Lunes
 2 = Martes
-3 = Miércoles
+3 = Miecoles
 4 = Jueves
 5 = Viernes
-6 = Sábado
-8 = Domingo (También usado para los días feriados)
+6 = Sabado
+8 = Domingo (Tambien usado para los dias feriados)
 
 
