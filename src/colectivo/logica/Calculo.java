@@ -6,7 +6,7 @@ import java.util.*;
 
 public class Calculo {
     
-    /**
+    /**  
      * Calcula los posibles recorridos entre dos paradas.
      */
     public static List<List<Recorrido>> calcularRecorrido(
