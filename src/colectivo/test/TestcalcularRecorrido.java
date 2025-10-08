@@ -56,7 +56,12 @@ class TestcalcularRecorrido {
 	@Test
 	void testSinColectivo() {
 		Parada paradaOrigen = paradas.get(66);
+
 		Parada paradaDestino = paradas.get(31);
+		
+		System.out.println("Parada origen: " + paradaOrigen);
+		System.out.println("Parada destino: " + paradaDestino);
+		
 
 		List<List<Recorrido>> recorridos = Calculo.calcularRecorrido(paradaOrigen, paradaDestino, diaSemana,
 				horaLlegaParada, tramos);
