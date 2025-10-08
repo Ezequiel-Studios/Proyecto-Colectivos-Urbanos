@@ -1,0 +1,19 @@
+# Ignorar archivos compilados (.class)
+*.class
+
+# Ignorar carpeta bin (Eclipse u otros IDEs)
+bin/
+
+# Ignorar configuraciones de Eclipse
+.classpath
+.project
+.settings/
+
+# Ignorar archivos temporales del sistema
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos de respaldo
+*~
