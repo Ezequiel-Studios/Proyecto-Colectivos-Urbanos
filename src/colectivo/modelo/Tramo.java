@@ -13,7 +13,6 @@ public class Tramo {
 	}
 
 	public Tramo(Parada inicio, Parada fin, int tiempo, int tipo) {
-		super();
 		this.inicio = inicio;
 		this.fin = fin;
 		this.tiempo = tiempo;
