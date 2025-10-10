@@ -19,7 +19,7 @@ public class Interfaz {
 		return null;
 	}
 
-	// Usuario ingresa día de la semana (1=lunes, 2=martes, ... 7=domingo)
+	// Usuario ingresa dÃ­a de la semana (1=lunes, 2=martes, ... 7=domingo)
 	public static int ingresarDiaSemana() {
 		return 1;
 	}
