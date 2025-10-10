@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 import colectivo.datos.CargarDatos;
 import colectivo.datos.CargarParametros;
@@ -33,40 +32,19 @@ public class AplicacionConsultas {
 
 		Map<String, Tramo> tramos = CargarDatos.cargarTramos(CargarParametros.getArchivoTramo(), paradas);
 
-		Scanner scanner = new Scanner(System.in);
-		boolean seguir = true;
-		
-		while(seguir) {
-			
-			// Ingreso datos usuario
-			Parada paradaOrigen = Interfaz.ingresarParadaOrigen(paradas);
-			Parada paradaDestino = Interfaz.ingresarParadaDestino(paradas);
-			int diaSemana = Interfaz.ingresarDiaSemana();
-			LocalTime horaLlegaParada = Interfaz.ingresarHoraLlegaParada();
-			
-			
-			// Realizar c�lculo
-			List<List<Recorrido>> recorridos = Calculo.calcularRecorrido(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos);
+		// Ingreso datos usuario
 
-			// Mostrar resultado
-			Interfaz.resultado(recorridos, paradaOrigen, paradaDestino, horaLlegaParada);
-			
-			System.out.println("¿Desea realizar otra consulta? (S/N): ");
-			String respuesta = scanner.nextLine().trim().toUpperCase();
-			
-			switch(respuesta) {
-				case "S": 
-					break;
-				case "N": 
-					seguir = false;
-					break;
-				default: System.out.println("Valor invalido. Pruebe nuevamente.");
-					break;
-			}
-			
-		}
+		Parada paradaOrigen = Interfaz.ingresarParadaOrigen(paradas);
+		Parada paradaDestino = Interfaz.ingresarParadaDestino(paradas);
+		int diaSemana = Interfaz.ingresarDiaSemana();
+		LocalTime horaLlegaParada = Interfaz.ingresarHoraLlegaParada();
+
 		
-		System.out.println("El programa finalizo");
-		scanner.close();
+		// Realizar calculo
+		List<List<Recorrido>> recorridos = Calculo.calcularRecorrido(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos);
+
+		// Mostrar resultado
+		Interfaz.resultado(recorridos, paradaOrigen, paradaDestino, horaLlegaParada);		
+
 	}
 }

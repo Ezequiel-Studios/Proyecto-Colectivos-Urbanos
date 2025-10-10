@@ -52,6 +52,10 @@ public class Linea {
 	public List<Parada> getParadas() {
 		return paradas;
 	}
+	
+	public List<Frecuencia> getFrecuencias() {
+	    return frecuencias;
+	}
 
 	@Override
 	public int hashCode() {
@@ -83,7 +87,7 @@ public class Linea {
 		return "Linea [codigo=" + codigo + ", nombre=" + nombre + "]";
 	}
 
-	private class Frecuencia {
+	public class Frecuencia {
 
 		private int diaSemana;
 		private LocalTime hora;

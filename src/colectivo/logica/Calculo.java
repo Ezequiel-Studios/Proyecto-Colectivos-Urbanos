@@ -5,194 +5,194 @@ import java.time.LocalTime;
 import java.util.*;
 
 public class Calculo {
-      
-    /**  
-     * Calcula los posibles recorridos entre dos paradas.
-     */
+
     public static List<List<Recorrido>> calcularRecorrido(
             Parada paradaOrigen,
             Parada paradaDestino,
             int diaSemana,
             LocalTime horaLlegaParada,
             Map<String, Tramo> tramos) {
-        
+
         List<List<Recorrido>> recorridosValidos = new LinkedList<>();
-        
-        // Verificar parámetros nulos
         if (paradaOrigen == null || paradaDestino == null || tramos == null || tramos.isEmpty()) {
             return recorridosValidos;
         }
-        
-        // 1. Reconstruir los recorridos completos a partir de los tramos
-        Map<String, Recorrido> recorridosReconstruidos = reconstruirRecorridos(tramos);
-        
-        // 2. Para cada recorrido, verificar si contiene ambas paradas en orden válido
-        for (Recorrido recorrido : recorridosReconstruidos.values()) {
-            if (recorrido != null && 
-                contieneAmbasParadasEnOrdenValido(recorrido, paradaOrigen, paradaDestino) &&
-                cumpleHorario(recorrido, diaSemana, horaLlegaParada)) {
+
+        RecorridoBuilderResult[] resultados = reconstruirDesdeOrdenArchivo(paradaOrigen, paradaDestino, tramos);
+
+        for (RecorridoBuilderResult r : resultados) {
+            if (r != null && !r.paradas.isEmpty()) {
                 
-                List<Recorrido> resultado = new ArrayList<>();
-                resultado.add(recorrido);
-                recorridosValidos.add(resultado);
-            }
-        }
-        
-        return recorridosValidos;
-    }
-    
-    /**
-     * Reconstruye los recorridos completos a partir de los tramos
-     */
-    private static Map<String, Recorrido> reconstruirRecorridos(Map<String, Tramo> tramos) {
-        Map<String, Recorrido> recorridos = new HashMap<>();
-        
-        if (tramos == null || tramos.isEmpty()) {
-            return recorridos;
-        }
-        
-        // Agrupar tramos por tipo (línea)
-        Map<Integer, List<Tramo>> tramosPorTipo = new HashMap<>();
-        
-        for (Tramo tramo : tramos.values()) {
-            if (tramo == null) continue;
-            
-            int tipo = tramo.getTipo();
-            List<Tramo> listaTramos = tramosPorTipo.get(tipo);
-            if (listaTramos == null) {
-                listaTramos = new ArrayList<>();
-                tramosPorTipo.put(tipo, listaTramos);
-            }
-            listaTramos.add(tramo);
-        }
-        
-        // Construir recorridos para cada tipo
-        for (Map.Entry<Integer, List<Tramo>> entry : tramosPorTipo.entrySet()) {
-            int tipo = entry.getKey();
-            List<Tramo> tramosDelTipo = entry.getValue();
-            
-            // Reconstruir la secuencia de paradas
-            List<Parada> paradasOrdenadas = reconstruirSecuenciaParadas(tramosDelTipo);
-            
-            if (!paradasOrdenadas.isEmpty()) {
-                // Crear línea
-                String codigoLinea = "L" + tipo;
-                Linea linea = new Linea(codigoLinea, "Línea " + tipo);
-                
-                // Calcular duración total
-                int duracion = calcularDuracionTotal(tramosDelTipo);
-                
-                // Hora de salida por defecto (se ajustaría con frecuencias reales)
-                LocalTime horaSalida = LocalTime.of(6, 0);
-                
-                // Crear recorrido
-                Recorrido recorrido = new Recorrido(linea, paradasOrdenadas, horaSalida, duracion);
-                recorridos.put(codigoLinea, recorrido);
-            }
-        }
-        
-        return recorridos;
-    }
-    
-    /**
-     * Reconstruye la secuencia ordenada de paradas para un recorrido
-     */
-    private static List<Parada> reconstruirSecuenciaParadas(List<Tramo> tramos) {
-        List<Parada> secuencia = new ArrayList<>();
-        
-        if (tramos == null || tramos.isEmpty()) {
-            return secuencia;
-        }
-        
-        // Crear mapa de conexiones
-        Map<Parada, Parada> conexiones = new HashMap<>();
-        Set<Parada> todasParadas = new HashSet<>();
-        Set<Parada> paradasFin = new HashSet<>();
-        
-        for (Tramo tramo : tramos) {
-            if (tramo.getInicio() != null && tramo.getFin() != null) {
-                conexiones.put(tramo.getInicio(), tramo.getFin());
-                todasParadas.add(tramo.getInicio());
-                todasParadas.add(tramo.getFin());
-                paradasFin.add(tramo.getFin());
-            }
-        }
-        
-        // Encontrar parada inicial (que no es fin de ningún tramo)
-        Parada inicio = null;
-        for (Parada parada : todasParadas) {
-            if (!paradasFin.contains(parada)) {
-                inicio = parada;
-                break;
-            }
-        }
-        
-        // Si no se encuentra inicio, usar la primera parada del primer tramo
-        if (inicio == null && !tramos.isEmpty()) {
-            inicio = tramos.get(0).getInicio();
-        }
-        
-        // Reconstruir secuencia
-        if (inicio != null) {
-            Parada actual = inicio;
-            Set<Parada> visitadas = new HashSet<>();
-            
-            while (actual != null && !visitadas.contains(actual)) {
-                secuencia.add(actual);
-                visitadas.add(actual);
-                actual = conexiones.get(actual);
-            }
-        }
-        
-        return secuencia;
-    }
-    
-    /**
-     * Calcula la duración total de un recorrido sumando los tiempos de todos los tramos
-     */
-    private static int calcularDuracionTotal(List<Tramo> tramos) {
-        int duracionTotal = 0;
-        if (tramos != null) {
-            for (Tramo tramo : tramos) {
-                if (tramo != null) {
-                    duracionTotal += tramo.getTiempo();
+                Linea linea = null;
+                Tramo primer = r.primerTramo;
+                int lineaNumero = r.lineaNumero;
+
+                // Buscar la línea por número
+                linea = buscarLineaPorNumero(lineaNumero, paradaOrigen);
+
+                // Si no se encuentra, buscar en las paradas del recorrido
+                if (linea == null && !r.paradas.isEmpty()) {
+                    for (Parada p : r.paradas) {
+                        linea = buscarLineaPorNumero(lineaNumero, p);
+                        if (linea != null) break;
+                    }
+                }
+
+                // Si aún no se encuentra, crear una línea básica
+                if (linea == null) {
+                    String codigoFallback = "L" + lineaNumero;
+                    linea = new Linea(codigoFallback, "Línea " + codigoFallback);
+                }
+
+                // Calcular duración sumando los tiempos de los tramos
+                int duracion = 0;
+                for (Tramo t : r.tramos) {
+                    if (t != null) {
+                        duracion += t.getTiempo();
+                    }
+                }
+
+                // Obtener la hora de salida de las frecuencias de la línea
+                LocalTime horaSalida = obtenerHoraSalida(linea, diaSemana, horaLlegaParada, duracion);
+
+                // Si se encontró una hora de salida válida, crear el recorrido
+                if (horaSalida != null) {
+                    Recorrido recorrido = new Recorrido(linea, r.paradas, horaSalida, duracion);
+                    List<Recorrido> lista = new ArrayList<>();
+                    lista.add(recorrido);
+                    recorridosValidos.add(lista);
                 }
             }
         }
-        return duracionTotal;
+
+        return recorridosValidos;
     }
-    
+
     /**
-     * Verifica si un recorrido contiene ambas paradas en un orden válido
+     * Busca una línea por número en las líneas asociadas a una parada
      */
-    private static boolean contieneAmbasParadasEnOrdenValido(Recorrido recorrido, Parada origen, Parada destino) {
-        if (recorrido == null || recorrido.getParadas() == null || origen == null || destino == null) {
-            return false;
+    private static Linea buscarLineaPorNumero(int lineaNumero, Parada parada) {
+        if (parada == null || parada.getLineas() == null) {
+            return null;
         }
         
-        List<Parada> paradas = recorrido.getParadas();
-        int indexOrigen = -1;
-        int indexDestino = -1;
-        
-        for (int i = 0; i < paradas.size(); i++) {
-            Parada parada = paradas.get(i);
-            if (parada.equals(origen)) {
-                indexOrigen = i;
+        // Buscar en todas las líneas de la parada
+        for (Linea l : parada.getLineas()) {
+            String codigo = l.getCodigo();
+            // Verificar si el código coincide con el número de línea (L1I, L1R, L2I, L2R, etc.)
+            if (codigo != null && codigo.matches("L" + lineaNumero + "[IR]")) {
+                return l;
             }
-            if (parada.equals(destino)) {
-                indexDestino = i;
+        }
+        return null;
+    }
+
+    /**
+     * Obtiene la hora de salida más temprana que permita llegar al destino a tiempo
+     */
+    private static LocalTime obtenerHoraSalida(Linea linea, int diaSemana, LocalTime horaLlegaParada, int duracion) {
+        LocalTime mejorHoraSalida = null;
+        
+        if (linea == null || linea.getFrecuencias() == null) {
+            return null;
+        }
+        
+        for (Linea.Frecuencia frecuencia : linea.getFrecuencias()) {
+            if (frecuencia.getDiaSemana() == diaSemana) {
+                LocalTime horaSalidaCandidata = frecuencia.getHora();
+                LocalTime horaLlegadaCalculada = horaSalidaCandidata.plusMinutes(duracion);
+                
+                // Si llegamos antes o justo a tiempo
+                if (!horaLlegadaCalculada.isAfter(horaLlegaParada)) {
+                    if (mejorHoraSalida == null || horaSalidaCandidata.isAfter(mejorHoraSalida)) {
+                        mejorHoraSalida = horaSalidaCandidata;
+                    }
+                }
             }
         }
         
-        return indexOrigen != -1 && indexDestino != -1 && indexOrigen < indexDestino;
+        return mejorHoraSalida;
     }
-    
+
     /**
-     * Verifica si el recorrido cumple con el día y horario solicitado
+     * Estructura auxiliar para devolver lo reconstruido a partir del orden del archivo.
      */
-    private static boolean cumpleHorario(Recorrido recorrido, int diaSemana, LocalTime horaLlegaParada) {
-        // Implementación simplificada - siempre retorna true por ahora
-        // En una implementación real, se verificarían las frecuencias de la línea
-        return true;
+    private static class RecorridoBuilderResult {
+        List<Parada> paradas;
+        List<Tramo> tramos;
+        Tramo primerTramo;
+        int lineaNumero;
+        
+        RecorridoBuilderResult(List<Parada> p, List<Tramo> t, Tramo primer, int lineaNumero) {
+            this.paradas = p;
+            this.tramos = t;
+            this.primerTramo = primer;
+            this.lineaNumero = lineaNumero;
+        }
+    }
+
+    /**
+     * Recorre los tramos en el orden dado (orden del archivo). Para cada ocurrencia
+     * donde encontramos la paradaOrigen en el campo inicio del tramo, intentamos
+     * reconstruir la cadena de tramos siguientes hasta encontrar paradaDestino.
+     */
+    private static RecorridoBuilderResult[] reconstruirDesdeOrdenArchivo(
+            Parada origen, Parada destino, Map<String, Tramo> tramos) {
+
+        if (origen == null || destino == null) return new RecorridoBuilderResult[0];
+        if (tramos == null || tramos.isEmpty()) return new RecorridoBuilderResult[0];
+
+        Tramo[] arr = tramos.values().toArray(new Tramo[0]);
+        List<RecorridoBuilderResult> encontrados = new ArrayList<>();
+
+        for (int i = 0; i < arr.length; i++) {
+            Tramo t = arr[i];
+            if (t == null) continue;
+
+            if (!t.getInicio().equals(origen)) {
+                continue;
+            }
+
+            int lineaNumero = t.getTipo();
+
+            List<Parada> paradasReconstruidas = new ArrayList<>();
+            List<Tramo> tramosReconstruidos = new ArrayList<>();
+
+            Parada actual = origen;
+            paradasReconstruidas.add(actual);
+
+            for (int j = i; j < arr.length; j++) {
+                Tramo tj = arr[j];
+                if (tj == null) continue;
+
+                if (tj.getTipo() != lineaNumero) {
+                    break;
+                }
+
+                if (!tj.getInicio().equals(actual)) {
+                    break;
+                }
+
+                tramosReconstruidos.add(tj);
+                Parada siguiente = tj.getFin();
+                if (siguiente == null) break;
+                paradasReconstruidas.add(siguiente);
+                actual = siguiente;
+
+                if (actual.equals(destino)) {
+                    Tramo primerTramo = tramosReconstruidos.isEmpty() ? null : tramosReconstruidos.get(0);
+                    RecorridoBuilderResult r = new RecorridoBuilderResult(
+                            new ArrayList<>(paradasReconstruidas),
+                            new ArrayList<>(tramosReconstruidos),
+                            primerTramo,
+                            lineaNumero
+                    );
+                    encontrados.add(r);
+                    break;
+                }
+            }
+        }
+
+        return encontrados.toArray(new RecorridoBuilderResult[0]);
     }
 }
