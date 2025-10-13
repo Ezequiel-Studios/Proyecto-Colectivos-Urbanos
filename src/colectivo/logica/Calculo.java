@@ -3,7 +3,7 @@ package colectivo.logica;
 import colectivo.modelo.*;
 import java.time.LocalTime;
 import java.util.*;
-
+import colectivo.interfaz.*;
 public class Calculo {
 
 	/**
@@ -61,7 +61,7 @@ public class Calculo {
 				}
 			}
 		}
-
+		Interfaz.resultado(recorridosValidos, paradaOrigen, paradaDestino, horaLlegaParada);
 		return recorridosValidos;
 	}
 

@@ -19,7 +19,7 @@ public class Interfaz {
 		return null;
 	}
 
-	// Usuario ingresa día de la semana (1=lunes, 2=martes, ... 7=domingo)
+	// Usuario ingresa d�a de la semana (1=lunes, 2=martes, ... 7=domingo)
 	public static int ingresarDiaSemana() {
 		return 1;
 	}
@@ -31,7 +31,20 @@ public class Interfaz {
 
 	// Mostrar los resultados
 	public static void resultado(List<List<Recorrido>> listaRecorridos, Parada paradaOrigen, Parada paradaDestino,
-			LocalTime horaLlegaParada) {		
+			LocalTime horaLlegaParada) {	
+		if(listaRecorridos.isEmpty()) {
+			System.out.println("No hay recorridos disponibles.");
+			return;
+		}
+		System.out.println("---------RECORRIDOS DISPONIBLES---------");
+		int contador = 1;
+		for(List<Recorrido> r : listaRecorridos) {
+			System.out.println("Recorrido " + contador + ": ");
+			for(Recorrido recorrido : r) {
+				System.out.println(" " + recorrido);
+			}
+			contador++;
+		}
 	}
 
 }

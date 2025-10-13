@@ -52,9 +52,9 @@ public class Linea {
 	public List<Parada> getParadas() {
 		return paradas;
 	}
-	
+
 	public List<Frecuencia> getFrecuencias() {
-	    return frecuencias;
+		return frecuencias;
 	}
 
 	@Override
@@ -117,6 +117,6 @@ public class Linea {
 		@Override
 		public String toString() {
 			return "Frecuencia [diaSemana=" + diaSemana + ", hora=" + hora + "]";
-		}		
+		}
 	}
 }

@@ -40,7 +40,7 @@ public class AplicacionConsultas {
 		LocalTime horaLlegaParada = Interfaz.ingresarHoraLlegaParada();
 
 		
-		// Realizar calculo
+		// Realizar cálculo
 		List<List<Recorrido>> recorridos = Calculo.calcularRecorrido(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos);
 
 		// Mostrar resultado
