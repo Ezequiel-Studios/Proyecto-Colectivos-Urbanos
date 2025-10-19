@@ -15,10 +15,15 @@ import colectivo.modelo.Tramo;
 public class CargarDatos {
 
 	private static Map<String, Linea> lineasCargadas;
+	private static Map<Integer, Parada> paradasCargadas;
 
 	public static Map<String, Linea> getLineasCargadas() {
 		return lineasCargadas;
 	}
+	
+	public static Map<Integer, Parada> getParadasCargadas() { // <-- NUEVO MÉTODO GETTER
+        return paradasCargadas;
+    }
 
 	public static Map<Integer, Parada> cargarParadas(String nombreArchivo) throws IOException {
 		Map<Integer, Parada> paradas = new LinkedHashMap<Integer, Parada>();
@@ -36,6 +41,7 @@ public class CargarDatos {
 				paradas.put(codigo, parada);
 			}
 		}
+		paradasCargadas = paradas;
 		return paradas;
 	}
 
