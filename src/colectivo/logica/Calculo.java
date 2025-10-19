@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
+import colectivo.aplicacion.Constantes;
 import colectivo.datos.CargarDatos;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
@@ -51,7 +52,7 @@ public class Calculo {
 					if (frecuencia.getDiaSemana() == diaSemana) {
 						LocalTime horaPasoPorOrigen = frecuencia.getHora().plusSeconds(tiempoHastaOrigen);
 
-						if (horaPasoPorOrigen.isAfter(horaLlegaParada)) {
+						if (!horaPasoPorOrigen.isBefore(horaLlegaParada)) {
 							int duracionTrayecto = calcularTiempoEntreParadas(paradasDeLaLinea, idxOrigen, idxDestino,
 									tramos);
 							List<Parada> paradasDelRecorrido = paradasDeLaLinea.subList(idxOrigen, idxDestino + 1);
@@ -69,16 +70,15 @@ public class Calculo {
 		}
 	}
 
-	private static int calcularTiempoEntreParadas(List<Parada> paradas, int idxInicio, int idxFin,
-			Map<String, Tramo> tramos) {
-		int tiempo = 0;
-		for (int i = idxInicio; i < idxFin; i++) {
-			String clave = paradas.get(i).getCodigo() + "-" + paradas.get(i + 1).getCodigo();
-			Tramo tramo = tramos.get(clave);
-			if (tramo != null) {
-				tiempo += tramo.getTiempo();
-			}
-		}
-		return tiempo;
+	private static int calcularTiempoEntreParadas(List<Parada> paradas, int idxInicio, int idxFin, Map<String, Tramo> tramos) {
+	    int tiempo = 0;
+	    for (int i = idxInicio; i < idxFin; i++) {
+	        String clave = paradas.get(i).getCodigo() + "-" + paradas.get(i + 1).getCodigo();
+	        Tramo tramo = tramos.get(clave);
+	        if (tramo != null && tramo.getTipo() == Constantes.COLECTIVO) {
+	            tiempo += tramo.getTiempo();
+	        }
+	    }
+	    return tiempo;
 	}
 }
