@@ -21,7 +21,7 @@ public class CargarDatos {
 		return lineasCargadas;
 	}
 	
-	public static Map<Integer, Parada> getParadasCargadas() { // <-- NUEVO MÉTODO GETTER
+	public static Map<Integer, Parada> getParadasCargadas() { 
         return paradasCargadas;
     }
 
@@ -162,5 +162,25 @@ public class CargarDatos {
 		lineasCargadas = lineas;
 
 		return lineas;
+	}
+	
+	// -----------------------------------------------------
+	// MÉTODOS AÑADIDOS (EL PARCHE)
+	// -----------------------------------------------------
+
+	/**
+	 * Permite al Coordinador "publicar" las paradas cargadas
+	 * para que los DAOs (LineaDAO, TramoDAO) puedan usarlas.
+	 */
+	public static void setParadasCargadas(Map<Integer, Parada> paradas) {
+		paradasCargadas = paradas;
+	}
+
+	/**
+	 * Permite al Coordinador "publicar" las líneas cargadas
+	 * para que la clase estática Calculo pueda usarlas.
+	 */
+	public static void setLineasCargadas(Map<String, Linea> lineas) {
+		lineasCargadas = lineas;
 	}
 }
