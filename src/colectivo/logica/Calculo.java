@@ -2,12 +2,14 @@ package colectivo.logica;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+// import java.util.Arrays; // No se usa
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import colectivo.aplicacion.Constantes;
+// import colectivo.aplicacion.Coordinador; // Eliminado para evitar dependencia circular
 import colectivo.datos.CargarDatos;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
@@ -16,9 +18,12 @@ import colectivo.modelo.Tramo;
 
 public class Calculo {
 
+	// private Coordinador coordinador; // Eliminado, no se usa si el método es estático
+	
 	public static List<List<Recorrido>> calcularRecorrido(Parada paradaOrigen, Parada paradaDestino, int diaSemana,
 			LocalTime horaLlegaParada, Map<String, Tramo> tramos) {
 
+		// Tu test depende de que esto funcione:
 		Map<String, Linea> lineasDelSistema = CargarDatos.getLineasCargadas();
 		if (lineasDelSistema == null) {
 			return Collections.emptyList();
@@ -71,14 +76,36 @@ public class Calculo {
 	}
 
 	private static int calcularTiempoEntreParadas(List<Parada> paradas, int idxInicio, int idxFin, Map<String, Tramo> tramos) {
-	    int tiempo = 0;
-	    for (int i = idxInicio; i < idxFin; i++) {
-	        String clave = paradas.get(i).getCodigo() + "-" + paradas.get(i + 1).getCodigo();
-	        Tramo tramo = tramos.get(clave);
-	        if (tramo != null && tramo.getTipo() == Constantes.COLECTIVO) {
-	            tiempo += tramo.getTiempo();
-	        }
-	    }
-	    return tiempo;
+		int tiempo = 0;
+		for (int i = idxInicio; i < idxFin; i++) {
+			String clave = paradas.get(i).getCodigo() + "-" + paradas.get(i + 1).getCodigo();
+			Tramo tramo = tramos.get(clave);
+			if (tramo != null && tramo.getTipo() == Constantes.COLECTIVO) {
+				tiempo += tramo.getTiempo();
+			}
+		}
+		return tiempo;
 	}
+	
+	private static List<List<Recorrido>> buscarConexiones() {
+		List<List<Recorrido>> recorridos = new ArrayList<>();
+		
+		
+		
+		
+		return recorridos;
+	}
+	
+	
+	private List<Parada> buscarParadasCarganas() { // Renombrado de "Cercanas"
+		List<Parada> paradasCercanas = new ArrayList<>();
+		
+		
+		
+		
+		return paradasCercanas;
+	}
+	
+	
+	
 }
