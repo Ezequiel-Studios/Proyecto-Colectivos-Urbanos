@@ -8,8 +8,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import colectivo.aplicacion.Constantes;
 import colectivo.conexion.Factory;
+import colectivo.controlador.Constantes;
 import colectivo.dao.LineaDAO;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
