@@ -1,14 +1,17 @@
 package colectivo.dao.secuencial;
 
+import colectivo.conexion.Factory;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
-import colectivo.datos.CargarParametros;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Tramo;
 import java.util.Map;
+import java.util.Properties;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 
@@ -19,9 +22,31 @@ public class TramoDAOArchivo implements TramoDAO {
 	private Map<String, Tramo> tramosMap;
 	private boolean actualizar;
 
-	public TramoDAOArchivo(String rutaArchivo) {
-		this.rutaArchivo = rutaArchivo;
-		this.paradasDisponibles = cargarParadas(); // Llama al método ayudante
+	public TramoDAOArchivo() {
+		Properties prop = new Properties();
+		InputStream input = null;
+		try {
+			input = new FileInputStream("config.properties");
+			prop.load(input);
+			// Busca la propiedad "tramo"
+			this.rutaArchivo = prop.getProperty("tramo");
+			if (this.rutaArchivo == null) {
+				System.err.println("Error crítico: La clave 'tramo' no se encontró en config.properties.");
+			}
+		} catch (IOException ex) {
+			System.err.println("Error crítico: No se pudo leer el archivo config.properties en TramoDAO.");
+			ex.printStackTrace();
+		} finally {
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		this.paradasDisponibles = cargarParadas();
 		this.tramosMap = new LinkedHashMap<>();
 		this.actualizar = true;
 	}
@@ -43,6 +68,10 @@ public class TramoDAOArchivo implements TramoDAO {
 
 	@Override
 	public Map<String, Tramo> buscarTodos() {
+		if (this.rutaArchivo == null) {
+			System.err.println("Error: No se puede buscar tramos porque la ruta del archivo es nula.");
+			return Collections.emptyMap();
+		}
 		if (actualizar) {
 			this.tramosMap = leerDelArchivo(this.rutaArchivo);
 			this.actualizar = false;
@@ -92,15 +121,15 @@ public class TramoDAOArchivo implements TramoDAO {
 	 * @return El mapa de paradas cargado.
 	 */
 	private Map<Integer, Parada> cargarParadas() {
-		// Obtenemos la ruta desde CargarParametros
-		String rutaParadas = CargarParametros.getArchivoParada();
-		if (rutaParadas == null) {
-			System.err.println("Error: La ruta del archivo de paradas no está configurada en CargarParametros.");
+		try {
+			// Usa la Factory para obtener el ParadaDAO
+			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
+			return paradaDAO.buscarTodos();
+		} catch (Exception e) {
+			System.err.println("Error al obtener ParadaDAO desde la Factory en TramoDAO.");
+			e.printStackTrace();
 			return Collections.emptyMap();
 		}
-		// Creamos la instancia del DAO de paradas y le pedimos los datos.
-		ParadaDAO paradaDAO = new ParadaDAOArchivo(rutaParadas);
-		return paradaDAO.buscarTodos();
 	}
 
 	public String getRutaArchivo() {

@@ -4,7 +4,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
-import colectivo.interfaz.Interfaz;
 import colectivo.interfaz.InterfazJavaFX;
 import colectivo.modelo.*;
 import colectivo.logica.Calculo;
@@ -31,7 +30,7 @@ public class Coordinador {
 
     // Métodos del controlador
     public List<List<Recorrido>> calcularRecorrido(Parada origen, Parada destino, int diaSemana, LocalTime hora){
-    	return Calculo.calcularRecorrido(origen, destino, diaSemana, hora, tramos);
+    	return calculo.calcularRecorrido(origen, destino, diaSemana, hora, tramos);
     }
 
     public List<Linea> getLineas() {

@@ -3,9 +3,12 @@ package colectivo.dao.secuencial;
 import colectivo.dao.ParadaDAO;
 import colectivo.modelo.Parada;
 import java.util.Map;
+import java.util.Properties;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 
@@ -15,8 +18,31 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	private Map<Integer, Parada> paradasMap;
 	private boolean actualizar;
 
-	public ParadaDAOArchivo(String rutaArchivo) {
-		this.rutaArchivo = rutaArchivo;
+	public ParadaDAOArchivo() {
+		Properties prop = new Properties();
+		InputStream input = null;
+		try {
+			input = new FileInputStream("config.properties");
+			prop.load(input);
+			this.rutaArchivo = prop.getProperty("parada");
+
+			if (this.rutaArchivo == null) {
+				System.err.println("Error crítico: La clave 'parada' no se encontró en config.properties.");
+			}
+
+		} catch (IOException ex) {
+			System.err.println("Error crítico: No se pudo leer el archivo config.properties.");
+			ex.printStackTrace();
+		} finally {
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
 		this.paradasMap = new LinkedHashMap<>();
 		this.actualizar = true;
 	}
@@ -38,6 +64,10 @@ public class ParadaDAOArchivo implements ParadaDAO {
 
 	@Override
 	public Map<Integer, Parada> buscarTodos() {
+		if (this.rutaArchivo == null) {
+			System.err.println("Error: No se puede buscar paradas porque la ruta del archivo es nula.");
+			return Collections.emptyMap();
+		}
 		if (actualizar) {
 			this.paradasMap = leerDelArchivo(this.rutaArchivo);
 			this.actualizar = false;
