@@ -2,8 +2,8 @@ package colectivo.interfaz;
 
 import java.time.LocalTime;
 import java.util.List;
-// Quitamos import de Application, Stage, Scene
-import colectivo.aplicacion.Coordinador;
+
+import colectivo.controlador.Coordinador;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
 import javafx.collections.FXCollections; // Importante

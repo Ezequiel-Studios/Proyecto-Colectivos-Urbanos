@@ -1,4 +1,4 @@
-package colectivo.aplicacion;
+package colectivo.controlador;
 
 import java.time.LocalTime;
 import java.util.List;

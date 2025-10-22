@@ -1,4 +1,4 @@
-package colectivo.aplicacion;
+package colectivo.controlador;
 
 import java.io.IOException;
 import java.util.Map;
