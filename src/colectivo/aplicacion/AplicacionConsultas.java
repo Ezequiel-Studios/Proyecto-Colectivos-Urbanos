@@ -49,7 +49,7 @@ public class AplicacionConsultas extends Application {
 
         } catch (IOException e) {
             System.err.println("Error fatal al cargar los datos iniciales. La aplicación se cerrará.");
-            e.printStackTrace();
+            e.printStackTrace(); 
             return;
         } catch (Exception e) {
             System.err.println("Error inesperado durante la carga de datos.");
