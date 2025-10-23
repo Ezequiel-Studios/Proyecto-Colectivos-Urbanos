@@ -114,8 +114,17 @@ public class ControladorInterfaz {
                     sb.append("     Hasta: ").append(ps.get(ps.size() - 1).getDireccion()).append("\n");
                 }
                 sb.append("     Sale:  ").append(r.getHoraSalida()).append("\n");
-                int dur = r.getDuracion();
-                sb.append("     Duración: ").append(dur / 60).append(" min ").append(dur % 60).append(" seg\n\n");
+
+                // Duración sin mostrar segundos cuando son 0
+                int totalSeg = r.getDuracion();
+                int min = totalSeg / 60;
+                int seg = totalSeg % 60;
+
+                sb.append("     Duración: ").append(min).append(" min");
+                if (seg != 0) {
+                    sb.append(" ").append(seg).append(" seg");
+                }
+                sb.append("\n\n");
             }
         }
         resultadoArea.setText(sb.toString());
