@@ -3,14 +3,14 @@ package colectivo.dao.secuencial;
 import colectivo.dao.ParadaDAO;
 import colectivo.modelo.Parada;
 import java.util.Map;
-import java.util.Properties;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Properties;
+import java.io.FileInputStream;
+import java.io.InputStream;
 
 public class ParadaDAOArchivo implements ParadaDAO {
 
@@ -18,31 +18,25 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	private Map<Integer, Parada> paradasMap;
 	private boolean actualizar;
 
+	// NUEVO: ctor sin argumentos que lee config.properties
 	public ParadaDAOArchivo() {
 		Properties prop = new Properties();
-		InputStream input = null;
-		try {
-			input = new FileInputStream("config.properties");
+		try (InputStream input = new FileInputStream("config.properties")) {
 			prop.load(input);
 			this.rutaArchivo = prop.getProperty("parada");
-
 			if (this.rutaArchivo == null) {
 				System.err.println("Error crítico: La clave 'parada' no se encontró en config.properties.");
 			}
-
 		} catch (IOException ex) {
-			System.err.println("Error crítico: No se pudo leer el archivo config.properties.");
+			System.err.println("Error crítico: No se pudo leer el archivo config.properties en ParadaDAO.");
 			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
+		this.paradasMap = new LinkedHashMap<>();
+		this.actualizar = true;
+	}
 
+	public ParadaDAOArchivo(String rutaArchivo) {
+		this.rutaArchivo = rutaArchivo;
 		this.paradasMap = new LinkedHashMap<>();
 		this.actualizar = true;
 	}
@@ -64,10 +58,6 @@ public class ParadaDAOArchivo implements ParadaDAO {
 
 	@Override
 	public Map<Integer, Parada> buscarTodos() {
-		if (this.rutaArchivo == null) {
-			System.err.println("Error: No se puede buscar paradas porque la ruta del archivo es nula.");
-			return Collections.emptyMap();
-		}
 		if (actualizar) {
 			this.paradasMap = leerDelArchivo(this.rutaArchivo);
 			this.actualizar = false;
@@ -75,12 +65,6 @@ public class ParadaDAOArchivo implements ParadaDAO {
 		return this.paradasMap;
 	}
 
-	/**
-	 * Método privado que contiene la lógica para leer y procesar el archivo.
-	 * 
-	 * @param ruta La ruta del archivo a leer.
-	 * @return Un mapa con las paradas cargadas.
-	 */
 	private Map<Integer, Parada> leerDelArchivo(String ruta) {
 		Map<Integer, Parada> paradas = new LinkedHashMap<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(ruta))) {

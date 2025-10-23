@@ -6,12 +6,13 @@ import java.util.ArrayList;
 
 import colectivo.conexion.Factory;
 import colectivo.dao.*;
-import colectivo.interfaz.InterfazJavaFX;
+import colectivo.interfaz.ControladorInterfaz;
 import colectivo.logica.Calculo;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Tramo;
 import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -38,23 +39,21 @@ public class AplicacionConsultas extends Application {
 			TramoDAO tramoDAO = (TramoDAO) Factory.getInstancia("TRAMO");
 			LineaDAO lineaDAO = (LineaDAO) Factory.getInstancia("LINEA");
 
-			paradas = paradaDAO.buscarTodos(); // Guardamos las paradas
+			paradas = paradaDAO.buscarTodos();
 			Map<String, Tramo> tramos = tramoDAO.buscarTodos();
-			Map<String, Linea> lineas = lineaDAO.buscarTodos(); // Cargamos líneas aquí también
+			Map<String, Linea> lineas = lineaDAO.buscarTodos();
 
-			// Verificar si la carga falló (DAOs devuelven mapas vacíos o hubo errores)
 			if (paradas.isEmpty() || tramos.isEmpty() || lineas.isEmpty()) {
-				System.err.println(
-						"Error crítico: Uno o más DAOs no pudieron cargar datos. Verifique los archivos .txt y config.properties.");
-				throw new IOException("Fallo en la carga inicial de datos desde DAOs."); // Lanzar excepción para ir al
-																							// catch
+				System.err.println("Error crítico: Falló la carga de datos desde DAOs.");
+				throw new IOException("Fallo en la carga inicial de datos desde DAOs.");
 			}
 
 			Calculo calculoLogic = new Calculo();
 
-			miCoordinador.setCalculo(calculoLogic); // Darle el cerebro
-			miCoordinador.setTramos(tramos); // Darle los tramos (Calculo los necesita)
-			miCoordinador.setParadas(new ArrayList<>(paradas.values())); // Darle las paradas (la Vista las necesita)
+			miCoordinador.setCalculo(calculoLogic);
+			miCoordinador.setTramos(tramos);
+			miCoordinador.setParadas(new ArrayList<>(paradas.values()));
+			miCoordinador.setLineas(new ArrayList<>(lineas.values()));
 
 		} catch (IOException e) {
 			System.err.println("Error fatal al cargar los datos iniciales. La aplicación se cerrará.");
@@ -66,18 +65,26 @@ public class AplicacionConsultas extends Application {
 			return;
 		}
 
-		// --- 3. Cargar la Vista (Interfaz) ---
-		// ¡Aquí está el cambio!
-		// Creamos nuestra interfaz manual y le pasamos el coordinador y las paradas
-		InterfazJavaFX vista = new InterfazJavaFX(miCoordinador, new ArrayList<>(paradas.values()));
+		// --- 3. Cargar la Vista (FXML) ---
+		try {
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/colectivo/interfaz/ControladorInterfaz.fxml"));
+			Parent root = loader.load();
 
-		// Obtenemos el panel raíz (VBox) que la clase InterfazJavaFX construyó
-		Parent root = vista.getRoot();
+			// Iniciar el controlador con el coordinador y paradas
+			ControladorInterfaz controller = loader.getController();
+			controller.init(miCoordinador, new ArrayList<>(paradas.values()));
 
-		// --- 4. Mostrar la Escena (Esto es estándar de JavaFX) ---
-		primaryStage.setTitle("Sistema de Consultas de Colectivos");
-		primaryStage.setScene(new Scene(root, 500, 700)); // Usamos el 'root' de nuestra interfaz manual
-		primaryStage.show();
+			Scene scene = new Scene(root, 700, 700);
+			// Cargar CSS (por si el FXML no lo toma)
+			scene.getStylesheets().add(getClass().getResource("/colectivo/interfaz/estilos.css").toExternalForm());
 
+			primaryStage.setTitle("Sistema de Consultas de Colectivos");
+			primaryStage.setScene(scene);
+			primaryStage.show();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.err.println("No se pudo cargar el FXML de la interfaz.");
+		}
 	}
+
 }

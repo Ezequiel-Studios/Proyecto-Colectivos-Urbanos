@@ -1,0 +1,14 @@
+/* Botón azul igual al de la imagen: redondeado, blanco, hover más oscuro y sombra */
+.primary-button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 2);
+}
+.primary-button:hover {
+    -fx-background-color: #2980b9;
+    -fx-cursor: hand;
+}
