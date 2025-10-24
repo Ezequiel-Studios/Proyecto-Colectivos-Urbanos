@@ -3,12 +3,16 @@ package colectivo.modelo;
 import java.time.LocalTime;
 import java.util.List;
 
+/**
+ * Represents a route in the system.
+ * Each route has a line, a duration, a list of stops and a departure time.
+ * */
 public class Recorrido {
 
     private Linea linea;
     private List<Parada> paradas;
     private LocalTime horaSalida;
-    private int duracion; // en minutos
+    private int duracion; 
 
     public Recorrido(Linea linea, List<Parada> paradas, LocalTime horaSalida, int duracion) {
         super();

@@ -16,13 +16,11 @@ public class Coordinador {
     private Calculo calculo;
     private ControladorInterfaz ControladorInterfaz;
     
-    // Listas directas de tus datos
     private List<Parada> paradas;
     private List<Linea> lineas;
     private List<Recorrido> recorridos;
     private Map<String, Tramo> tramos;
 
-    // Getters y Setters básicos
     public void setCalculo(Calculo calculo) { this.calculo = calculo; }
     public void setInterfaz(ControladorInterfaz ControladorInterfaz) { this.ControladorInterfaz = ControladorInterfaz; }
     
@@ -31,20 +29,40 @@ public class Coordinador {
     public void setRecorridos(List<Recorrido> recorridos) { this.recorridos = recorridos; }
     public void setTramos(Map<String, Tramo> tramos) { this.tramos = tramos; }
 
-    // Métodos del controlador
+    /**
+     * Calls the method responsible for calculating possible routes 
+     * between two bus stops given the day and time.
+     * @param origen     the origin bus stop
+     * @param destino    the destination bus stop
+     * @param diaSemana  the day of the week
+     * @param hora       the departure time
+     * @return a list of all the possible routes that match the
+     * needs of the user, represented as lists.
+     * */
     public List<List<Recorrido>> calcularRecorrido(Parada origen, Parada destino, int diaSemana, LocalTime hora){
     	return calculo.calcularRecorrido(origen, destino, diaSemana, hora, tramos);
     }
 
+    /**
+     * Returns the list of all bus lines loaded.
+     * @return a list with all the lines.
+     * */
     public List<Linea> getLineas() {
         return lineas;
     }
 
+    /**
+     * Returns the list of all bus stops loaded.
+     * @return a list with all the stops.
+     * */
     public List<Parada> getParadas() {
         return paradas;
     }
 
-    // Agregado: para que la UI pueda calcular horarios en la parada de origen
+    /**
+     * Returns the map with all route segments loaded.
+     * @return a map with the route segments.
+     * */
     public Map<String, Tramo> getTramos() {
         return tramos;
     }

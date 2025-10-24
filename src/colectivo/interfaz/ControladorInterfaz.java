@@ -19,23 +19,27 @@ public class ControladorInterfaz {
 
     @FXML private ComboBox<Parada>  comboOrigen;
     @FXML private ComboBox<Parada>  comboDestino;
-    @FXML private ComboBox<String>  comboDia;     // Lunes..Domingo
-    @FXML private ComboBox<Integer> comboHora;    // 0..23
-    @FXML private ComboBox<Integer> comboMinuto;  // 0..59
+    @FXML private ComboBox<String>  comboDia;     
+    @FXML private ComboBox<Integer> comboHora;    
+    @FXML private ComboBox<Integer> comboMinuto;  
     @FXML private Button            btnCalcular;
     @FXML private TextArea          resultadoArea;
 
     private Coordinador coordinador;
     private final Map<String,Integer> diasMap = new HashMap<>();
 
+    /**
+     * Initializes the controller with available stops and sets up
+     * ComboBoxes and default selections.
+     * */
     public void init(Coordinador coordinador, List<Parada> paradasDisponibles) {
         this.coordinador = coordinador;
 
-        // Paradas
+        // Stops
         comboOrigen.getItems().setAll(paradasDisponibles);
         comboDestino.getItems().setAll(paradasDisponibles);
 
-        // Día de la semana (palabras)
+        // Days of the week
         comboDia.getItems().setAll("Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo");
         comboDia.getSelectionModel().select("Lunes");
         diasMap.put("Lunes", 1);
@@ -46,17 +50,21 @@ public class ControladorInterfaz {
         diasMap.put("Sábado", 6);
         diasMap.put("Domingo", 7);
 
-        // Hora y minuto (dos dígitos)
+        // Hour and minute (two digits)
         comboHora.getItems().setAll(rango(0, 23));
         comboMinuto.getItems().setAll(rango(0, 59));
         comboHora.setConverter(dosDigitos());
         comboMinuto.setConverter(dosDigitos());
 
-        // Selección inicial (como la imagen)
+        // Default selection
         comboHora.getSelectionModel().select(Integer.valueOf(10));
         comboMinuto.getSelectionModel().select(Integer.valueOf(0));
     }
 
+    /**
+     * Private method called when the Calcular button is pressed.
+     * Validates input and requests available routes from the coordinator.
+     * */
     @FXML
     private void onCalcular() {
         Parada origen  = comboOrigen.getValue();
@@ -85,6 +93,9 @@ public class ControladorInterfaz {
         }
     }
 
+    /**
+     * Displays the list of available routes in the results area.
+     * */
     private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
         if (listaRecorridos == null || listaRecorridos.isEmpty()) {
             resultadoArea.setText("ℹ️ No hay recorridos disponibles para la búsqueda realizada.");
@@ -115,7 +126,6 @@ public class ControladorInterfaz {
                 }
                 sb.append("     Sale:  ").append(r.getHoraSalida()).append("\n");
 
-                // Duración sin mostrar segundos cuando son 0
                 int totalSeg = r.getDuracion();
                 int min = totalSeg / 60;
                 int seg = totalSeg % 60;
@@ -131,13 +141,23 @@ public class ControladorInterfaz {
         resultadoArea.setStyle("-fx-control-inner-background: #f8f9fa; -fx-text-fill: black;");
     }
 
-    // Utilitarios
+    /**
+     * Generates a list of integers within a given range.
+     * Used to populate ComboBoxes for hours and minutes.
+     * @param desde Starting integer value.
+     * @param hasta Ending integer value.
+     * @return a list containing all integers in the specified range.
+     * */
     private List<Integer> rango(int desde, int hasta) {
         List<Integer> l = new ArrayList<>();
         for (int i = desde; i <= hasta; i++) l.add(i);
         return l;
     }
 
+    /**
+     * Used for displaying hours and minutes consistently.
+     * @return a StringConverter for formatting integer values with two digits.
+     * */
     private StringConverter<Integer> dosDigitos() {
         return new StringConverter<Integer>() {
             @Override public String toString(Integer value) {
@@ -150,11 +170,19 @@ public class ControladorInterfaz {
         };
     }
 
+    /**
+     * Displays a warning message in the results area.
+     * @param msg The warning message to be shown.
+     * */
     private void pintarAdvertencia(String msg) {
         resultadoArea.setText(msg);
         resultadoArea.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
     }
 
+    /**
+     * Displays an error message in the results area.
+     * @param msg The error message to be shown.
+     * */
     private void pintarError(String msg) {
         resultadoArea.setText(msg);
         resultadoArea.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");

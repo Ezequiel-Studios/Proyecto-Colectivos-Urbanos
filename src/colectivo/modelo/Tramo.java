@@ -2,6 +2,10 @@ package colectivo.modelo;
 
 import colectivo.controlador.Constantes;
 
+/**
+ * Represents a route segment in the system.
+ * Each segment has a starting stop, an ending stop, a duration and a type.
+ * */
 public class Tramo {
 
 	private Parada inicio;
@@ -10,6 +14,7 @@ public class Tramo {
 	private int tipo;
 
 	public Tramo() {
+		
 	}
 
 	public Tramo(Parada inicio, Parada fin, int tiempo, int tipo) {

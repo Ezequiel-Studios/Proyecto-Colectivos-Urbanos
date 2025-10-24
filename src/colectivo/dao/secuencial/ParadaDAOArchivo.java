@@ -18,7 +18,10 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	private Map<Integer, Parada> paradasMap;
 	private boolean actualizar;
 
-	// NUEVO: ctor sin argumentos que lee config.properties
+	/**
+	 * Constructor that loads configuration properties, initizalizes
+	 * stops and prepares the structure to store lines.
+	 * */
 	public ParadaDAOArchivo() {
 		Properties prop = new Properties();
 		try (InputStream input = new FileInputStream("config.properties")) {
@@ -43,19 +46,25 @@ public class ParadaDAOArchivo implements ParadaDAO {
 
 	@Override
 	public void insertar(Parada parada) {
-		// Implementar escritura en archivo
+		
 	}
 
 	@Override
 	public void actualizar(Parada parada) {
-		// Actualizar registro en archivo
+		
 	}
 
 	@Override
 	public void borrar(Parada parada) {
-		// Borrar línea correspondiente en archivo
+		
 	}
 
+	/**
+	 * Returns all bus stops currently loaded.
+	 * If the data needs to refreshed, reads them from the
+	 * file first.
+	 * @return a map containing all loaded stop objects.
+	 * */
 	@Override
 	public Map<Integer, Parada> buscarTodos() {
 		if (actualizar) {
@@ -65,6 +74,12 @@ public class ParadaDAOArchivo implements ParadaDAO {
 		return this.paradasMap;
 	}
 
+	/**
+	 * Private method that contains the logic required to read and process 
+	 * the file.
+	 * @param ruta the route of the file to be read.
+	 * @return a map loaded with the stops.
+	 */
 	private Map<Integer, Parada> leerDelArchivo(String ruta) {
 		Map<Integer, Parada> paradas = new LinkedHashMap<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(ruta))) {

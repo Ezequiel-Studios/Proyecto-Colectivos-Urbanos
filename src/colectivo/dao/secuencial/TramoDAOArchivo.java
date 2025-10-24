@@ -22,13 +22,16 @@ public class TramoDAOArchivo implements TramoDAO {
 	private Map<String, Tramo> tramosMap;
 	private boolean actualizar;
 
+	/**
+	 * Constructor that loads configuration properties, initizalizes
+	 * stops and prepares the structure to store segments.
+	 * */
 	public TramoDAOArchivo() {
 		Properties prop = new Properties();
 		InputStream input = null;
 		try {
 			input = new FileInputStream("config.properties");
 			prop.load(input);
-			// Busca la propiedad "tramo"
 			this.rutaArchivo = prop.getProperty("tramo");
 			if (this.rutaArchivo == null) {
 				System.err.println("Error crítico: La clave 'tramo' no se encontró en config.properties.");
@@ -53,19 +56,25 @@ public class TramoDAOArchivo implements TramoDAO {
 
 	@Override
 	public void insertar(Tramo tramo) {
-		// Implementar escritura en archivo
+		
 	}
 
 	@Override
 	public void actualizar(Tramo tramo) {
-		// Actualizar registro en archivo
+		
 	}
 
 	@Override
 	public void borrar(Tramo tramo) {
-		// Borrar línea correspondiente en archivo
+		
 	}
 
+	/**
+	 * Returns all bus segments (Tramo) currently loaded.
+	 * If the data needs to refreshed, reads them from the
+	 * file first.
+	 * @return a map containing all loaded segment objects.
+	 * */
 	@Override
 	public Map<String, Tramo> buscarTodos() {
 		if (this.rutaArchivo == null) {
@@ -79,6 +88,12 @@ public class TramoDAOArchivo implements TramoDAO {
 		return this.tramosMap;
 	}
 
+	/**
+	 * Private method that contains the logic required to read and process 
+	 * the file.
+	 * @param ruta the route of the file to be read.
+	 * @return a map loaded with the segments (Tramo).
+	 */
 	private Map<String, Tramo> leerDelArchivo(String ruta) {
 		Map<String, Tramo> tramos = new LinkedHashMap<>();
 
@@ -116,9 +131,8 @@ public class TramoDAOArchivo implements TramoDAO {
 	}
 
 	/**
-	 * Método privado que se encarga de obtener la dependencia (el mapa de paradas).
-	 * 
-	 * @return El mapa de paradas cargado.
+	 * Private method responsible for retrieving the dependency (the map of stops)
+	 * @return the map loaded with stops.
 	 */
 	private Map<Integer, Parada> cargarParadas() {
 		try {

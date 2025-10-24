@@ -3,6 +3,11 @@ package colectivo.modelo;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a bus stop in the system.
+ * Each stop has a code, an address and its location (latitud
+ * and longitude), a list of lines and a list of walkable stops.
+ * */
 public class Parada {
 
 	private int codigo;
@@ -27,10 +32,18 @@ public class Parada {
 		this.paradaCaminando = new ArrayList<Parada>();
 	}
 
+	/**
+	 * Adds a line to this stop.
+	 * @param linea  the line to be added.
+	 * */
 	public void agregarLinea(Linea linea) {
 		this.lineas.add(linea);
 	}
 
+	/**
+	 * Adds a stop to the list of stops that the person can walk to.
+	 * @param parada  the stop to be added.
+	 * */
 	public void agregarParadaCaminado(Parada parada) {
 		this.paradaCaminando.add(parada);
 	}
@@ -77,7 +90,7 @@ public class Parada {
 
 	@Override
 	public String toString() {
-		return "Parada [codigo=" + codigo + ", direccion=" + direccion + "]";
+		return "Parada " + codigo + ": " + direccion;
 	}
 
 	@Override

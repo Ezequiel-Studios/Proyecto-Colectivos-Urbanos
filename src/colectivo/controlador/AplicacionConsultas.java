@@ -21,17 +21,22 @@ public class AplicacionConsultas extends Application {
 
 	private Coordinador miCoordinador;
 
+	/**
+     * Launches the JavaFX application.
+     * */
 	public static void main(String[] args) {
 		launch(args);
 	}
 
+	/**
+     * Starts the JavaFX application and initializes the necessary 
+     * components.
+     * @param primaryStage the main window of the JavaFX application.
+     * */
 	@Override
 	public void start(Stage primaryStage) {
 
-		// --- 1. Crear el Coordinador ---
 		miCoordinador = new Coordinador();
-
-		// --- 2. Cargar los Datos (Lógica de negocio) ---
 		Map<Integer, Parada> paradas = null;
 
 		try {
@@ -65,17 +70,13 @@ public class AplicacionConsultas extends Application {
 			return;
 		}
 
-		// --- 3. Cargar la Vista (FXML) ---
 		try {
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("/colectivo/interfaz/ControladorInterfaz.fxml"));
 			Parent root = loader.load();
-
-			// Iniciar el controlador con el coordinador y paradas
 			ControladorInterfaz controller = loader.getController();
 			controller.init(miCoordinador, new ArrayList<>(paradas.values()));
 
 			Scene scene = new Scene(root, 700, 700);
-			// Cargar CSS (por si el FXML no lo toma)
 			scene.getStylesheets().add(getClass().getResource("/colectivo/interfaz/estilos.css").toExternalForm());
 
 			primaryStage.setTitle("Sistema de Consultas de Colectivos");

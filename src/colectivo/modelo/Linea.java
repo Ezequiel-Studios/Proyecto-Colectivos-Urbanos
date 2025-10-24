@@ -4,6 +4,11 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a bus line in the system.
+ * Each line has a code, a name, a list of stops and a list of 
+ * frequencies (schedules).
+ * */
 public class Linea {
 
 	private String codigo;
@@ -24,11 +29,20 @@ public class Linea {
 		this.frecuencias = new ArrayList<Frecuencia>();
 	}
 
+	/**
+	 * Adds a stop to this line.
+	 * @param parada  the stop to be added.
+	 * */
 	public void agregarParada(Parada parada) {
 		paradas.add(parada);
 		parada.agregarLinea(this);
 	}
 
+	/**
+	 * Adds a frequency for this line.
+	 * @param diaSemana Day of the week.
+	 * @param hora      Time of the bus.
+	 * */
 	public void agregarFrecuencia(int diaSemana, LocalTime hora) {
 		frecuencias.add(new Frecuencia(diaSemana, hora));
 	}
@@ -87,6 +101,9 @@ public class Linea {
 		return "Linea [codigo=" + codigo + ", nombre=" + nombre + "]";
 	}
 
+	/**
+	 * Inner class representing the schedule of the line.
+	 * */
 	public class Frecuencia {
 
 		private int diaSemana;
