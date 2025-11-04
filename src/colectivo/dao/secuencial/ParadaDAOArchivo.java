@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Properties;
-import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class ParadaDAOArchivo implements ParadaDAO {
@@ -19,52 +18,56 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	private boolean actualizar;
 
 	/**
-	 * Constructor that loads configuration properties, initizalizes
-	 * stops and prepares the structure to store lines.
-	 * */
+	 * Constructor that loads configuration properties, initizalizes stops and
+	 * prepares the structure to store lines.
+	 */
 	public ParadaDAOArchivo() {
 		Properties prop = new Properties();
-		try (InputStream input = new FileInputStream("config.properties")) {
+		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+
+			if (input == null) {
+				System.err.println("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src.");
+				throw new IOException("Archivo config.properties no encontrado en classpath.");
+			}
+
 			prop.load(input);
+
 			this.rutaArchivo = prop.getProperty("parada");
+
 			if (this.rutaArchivo == null) {
 				System.err.println("Error crítico: La clave 'parada' no se encontró en config.properties.");
 			}
+
 		} catch (IOException ex) {
-			System.err.println("Error crítico: No se pudo leer el archivo config.properties en ParadaDAO.");
+			System.err.println("Error crítico: No se pudo leer el archivo config.properties.");
 			ex.printStackTrace();
 		}
-		this.paradasMap = new LinkedHashMap<>();
-		this.actualizar = true;
-	}
 
-	public ParadaDAOArchivo(String rutaArchivo) {
-		this.rutaArchivo = rutaArchivo;
 		this.paradasMap = new LinkedHashMap<>();
 		this.actualizar = true;
 	}
 
 	@Override
 	public void insertar(Parada parada) {
-		
+
 	}
 
 	@Override
 	public void actualizar(Parada parada) {
-		
+
 	}
 
 	@Override
 	public void borrar(Parada parada) {
-		
+
 	}
 
 	/**
-	 * Returns all bus stops currently loaded.
-	 * If the data needs to refreshed, reads them from the
-	 * file first.
+	 * Returns all bus stops currently loaded. If the data needs to refreshed, reads
+	 * them from the file first.
+	 * 
 	 * @return a map containing all loaded stop objects.
-	 * */
+	 */
 	@Override
 	public Map<Integer, Parada> buscarTodos() {
 		if (actualizar) {
@@ -75,8 +78,8 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	}
 
 	/**
-	 * Private method that contains the logic required to read and process 
-	 * the file.
+	 * Private method that contains the logic required to read and process the file.
+	 * 
 	 * @param ruta the route of the file to be read.
 	 * @return a map loaded with the stops.
 	 */

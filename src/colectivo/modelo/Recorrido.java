@@ -4,67 +4,63 @@ import java.time.LocalTime;
 import java.util.List;
 
 /**
- * Represents a route in the system.
- * Each route has a line, a duration, a list of stops and a departure time.
- * */
+ * Represents a route in the system. Each route has a line, a duration, a list
+ * of stops and a departure time.
+ */
 public class Recorrido {
 
-    private Linea linea;
-    private List<Parada> paradas;
-    private LocalTime horaSalida;
-    private int duracion; 
+	private Linea linea;
+	private List<Parada> paradas;
+	private LocalTime horaSalida;
+	private int duracion;
 
-    public Recorrido(Linea linea, List<Parada> paradas, LocalTime horaSalida, int duracion) {
-        super();
-        this.linea = linea;
-        this.paradas = paradas;
-        this.horaSalida = horaSalida;
-        this.duracion = duracion;
-    }
+	public Recorrido(Linea linea, List<Parada> paradas, LocalTime horaSalida, int duracion) {
+		super();
+		this.linea = linea;
+		this.paradas = paradas;
+		this.horaSalida = horaSalida;
+		this.duracion = duracion;
+	}
 
-    public Linea getLinea() {
-        return linea;
-    }
+	public Linea getLinea() {
+		return linea;
+	}
 
-    public void setLinea(Linea linea) {
-        this.linea = linea;
-    }
+	public void setLinea(Linea linea) {
+		this.linea = linea;
+	}
 
-    public List<Parada> getParadas() {
-        return paradas;
-    }
+	public List<Parada> getParadas() {
+		return paradas;
+	}
 
-    public void setParadas(List<Parada> paradas) {
-        this.paradas = paradas;
-    }
+	public void setParadas(List<Parada> paradas) {
+		this.paradas = paradas;
+	}
 
-    public LocalTime getHoraSalida() {
-        return horaSalida;
-    }
+	public LocalTime getHoraSalida() {
+		return horaSalida;
+	}
 
-    public void setHoraSalida(LocalTime horaSalida) {
-        this.horaSalida = horaSalida;
-    }
+	public void setHoraSalida(LocalTime horaSalida) {
+		this.horaSalida = horaSalida;
+	}
 
-    public int getDuracion() {
-        return duracion;
-    }
+	public int getDuracion() {
+		return duracion;
+	}
 
-    public void setDuracion(int duracion) {
-        this.duracion = duracion;
-    }
+	public void setDuracion(int duracion) {
+		this.duracion = duracion;
+	}
 
-    /**
-     * Devuelve una representación en String del objeto Recorrido.
-     * Es ideal para logging y debugging.
-     */
-    @Override
-    public String toString() {
-        return "Recorrido{" +
-                "linea=" + linea +
-                ", paradas=" + paradas +
-                ", horaSalida=" + horaSalida +
-                ", duracion=" + duracion + " minutos" +
-                '}';
-    }
+	/**
+	 * Devuelve una representación en String del objeto Recorrido. Es ideal para
+	 * logging y debugging.
+	 */
+	@Override
+	public String toString() {
+		return "Recorrido{" + "linea=" + linea + ", paradas=" + paradas + ", horaSalida=" + horaSalida + ", duracion="
+				+ duracion + " minutos" + '}';
+	}
 }

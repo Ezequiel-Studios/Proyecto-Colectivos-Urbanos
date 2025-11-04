@@ -9,7 +9,6 @@ import colectivo.modelo.Parada;
 import java.util.Map;
 import java.util.Properties;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,22 +18,28 @@ import java.util.LinkedHashMap;
 
 public class LineaDAOArchivo implements LineaDAO {
 
-	private String rutaArchivo; 
+	private String rutaArchivo;
 	private String rutaArchivoFrecuencias;
 	private final Map<Integer, Parada> paradasDisponibles;
 	private Map<String, Linea> lineasMap;
 	private boolean actualizar;
 
 	/**
-	 * Constructor that loads configuration properties, initizalizes
-	 * stops and prepares the structure to store lines.
-	 * */
+	 * Constructor that loads configuration properties, initizalizes stops and
+	 * prepares the structure to store lines.
+	 */
 	public LineaDAOArchivo() {
 		Properties prop = new Properties();
-		InputStream input = null;
-		try {
-			input = new FileInputStream("config.properties");
+		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+
+			if (input == null) {
+				System.err.println(
+						"Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde LineaDAO).");
+				throw new IOException("Archivo config.properties no encontrado en classpath.");
+			}
+
 			prop.load(input);
+
 			this.rutaArchivo = prop.getProperty("linea");
 			this.rutaArchivoFrecuencias = prop.getProperty("frecuencia");
 
@@ -44,14 +49,6 @@ public class LineaDAOArchivo implements LineaDAO {
 		} catch (IOException ex) {
 			System.err.println("Error crítico: No se pudo leer config.properties en LineaDAO.");
 			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
 
 		this.paradasDisponibles = cargarParadas();
@@ -61,25 +58,25 @@ public class LineaDAOArchivo implements LineaDAO {
 
 	@Override
 	public void insertar(Linea linea) {
-		
+
 	}
 
 	@Override
 	public void actualizar(Linea linea) {
-		
+
 	}
 
 	@Override
 	public void borrar(Linea linea) {
-		
+
 	}
 
 	/**
-	 * Returns all bus lines currently loaded.
-	 * If the data needs to refreshed, reads them from the
-	 * file first.
+	 * Returns all bus lines currently loaded. If the data needs to refreshed, reads
+	 * them from the file first.
+	 * 
 	 * @return a map containing all loaded line objects.
-	 * */
+	 */
 	@Override
 	public Map<String, Linea> buscarTodos() {
 		if (this.rutaArchivo == null || this.rutaArchivoFrecuencias == null) {
@@ -94,11 +91,12 @@ public class LineaDAOArchivo implements LineaDAO {
 	}
 
 	/**
-	 * Private method responsible for reading the lines, stops and 
-	 * frequencies from their files.
-	 * @return a map containing all line objects with their associated stops 
-	 * and frequencies.
-	 * */
+	 * Private method responsible for reading the lines, stops and frequencies from
+	 * their files.
+	 * 
+	 * @return a map containing all line objects with their associated stops and
+	 *         frequencies.
+	 */
 	private Map<String, Linea> leerDelArchivo() {
 		Map<String, Linea> lineas = new LinkedHashMap<>();
 
@@ -158,6 +156,7 @@ public class LineaDAOArchivo implements LineaDAO {
 
 	/**
 	 * Private method that loads the map of bus stops.
+	 * 
 	 * @return the loaded map of stops.
 	 */
 	private Map<Integer, Parada> cargarParadas() {

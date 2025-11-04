@@ -4,187 +4,265 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 import colectivo.controlador.Coordinador;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
+import javafx.stage.Stage;
 import javafx.util.StringConverter;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ControladorInterfaz {
 
-    @FXML private ComboBox<Parada>  comboOrigen;
-    @FXML private ComboBox<Parada>  comboDestino;
-    @FXML private ComboBox<String>  comboDia;     
-    @FXML private ComboBox<Integer> comboHora;    
-    @FXML private ComboBox<Integer> comboMinuto;  
-    @FXML private Button            btnCalcular;
-    @FXML private TextArea          resultadoArea;
+	@FXML
+	private ComboBox<Parada> comboOrigen;
+	@FXML
+	private ComboBox<Parada> comboDestino;
+	@FXML
+	private ComboBox<String> comboDia;
+	@FXML
+	private ComboBox<Integer> comboHora;
+	@FXML
+	private ComboBox<Integer> comboMinuto;
+	@FXML
+	private Button btnCalcular;
+	@FXML
+	private TextArea resultadoArea;
+	@FXML
+	private ComboBox<String> comboIdioma;
 
-    private Coordinador coordinador;
-    private final Map<String,Integer> diasMap = new HashMap<>();
+	private Coordinador coordinador;
+	private ResourceBundle resources;
+	private Stage stage;
+	private final Map<String, Integer> diasMap = new HashMap<>();
+	private final Map<String, String> idiomasDisponibles = new HashMap<>();
+	private static final Logger LOGGER = LogManager.getLogger(ControladorInterfaz.class);
 
-    /**
-     * Initializes the controller with available stops and sets up
-     * ComboBoxes and default selections.
-     * */
-    public void init(Coordinador coordinador, List<Parada> paradasDisponibles) {
-        this.coordinador = coordinador;
+	/**
+	 * Initializes the controller with available stops and sets up ComboBoxes and
+	 * default selections.
+	 */
+	public void init(Coordinador coordinador, List<Parada> paradasDisponibles, ResourceBundle resources, Stage stage) {
+		this.coordinador = coordinador;
+		this.resources = resources;
+		this.stage = stage;
 
-        // Stops
-        comboOrigen.getItems().setAll(paradasDisponibles);
-        comboDestino.getItems().setAll(paradasDisponibles);
+		// Stops
+		comboOrigen.getItems().setAll(paradasDisponibles);
+		comboDestino.getItems().setAll(paradasDisponibles);
 
-        // Days of the week
-        comboDia.getItems().setAll("Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo");
-        comboDia.getSelectionModel().select("Lunes");
-        diasMap.put("Lunes", 1);
-        diasMap.put("Martes", 2);
-        diasMap.put("Miércoles", 3);
-        diasMap.put("Jueves", 4);
-        diasMap.put("Viernes", 5);
-        diasMap.put("Sábado", 6);
-        diasMap.put("Domingo", 7);
+		// Days of the week
+		String clavesDias[] = { "diaLunes", "diaMartes", "diaMiercoles", "diaJueves", "diaViernes", "diaSabado",
+				"diaDomingo" };
+		List<String> diasTraducidos = new ArrayList<>();
 
-        // Hour and minute (two digits)
-        comboHora.getItems().setAll(rango(0, 23));
-        comboMinuto.getItems().setAll(rango(0, 59));
-        comboHora.setConverter(dosDigitos());
-        comboMinuto.setConverter(dosDigitos());
+		for (int i = 0; i < clavesDias.length; i++) {
+			String clave = clavesDias[i];
+			String nombreTraducido = resources.getString(clave).trim();
+			String claveNormalizada = nombreTraducido.toLowerCase();
+			int indiceDia = i + 1;
+			diasMap.put(claveNormalizada, indiceDia);
+			diasTraducidos.add(nombreTraducido);
+		}
+		comboDia.getItems().setAll(diasTraducidos);
 
-        // Default selection
-        comboHora.getSelectionModel().select(Integer.valueOf(10));
-        comboMinuto.getSelectionModel().select(Integer.valueOf(0));
-    }
+		comboDia.getSelectionModel().select(resources.getString("diaLunes").trim());
 
-    /**
-     * Private method called when the Calcular button is pressed.
-     * Validates input and requests available routes from the coordinator.
-     * */
-    @FXML
-    private void onCalcular() {
-        Parada origen  = comboOrigen.getValue();
-        Parada destino = comboDestino.getValue();
-        String diaTxt  = comboDia.getValue();
-        Integer hh     = comboHora.getValue();
-        Integer mm     = comboMinuto.getValue();
+		// Hour and minute (two digits)
+		comboHora.getItems().setAll(rango(0, 23));
+		comboMinuto.getItems().setAll(rango(0, 59));
+		comboHora.setConverter(dosDigitos());
+		comboMinuto.setConverter(dosDigitos());
 
-        if (origen == null || destino == null || diaTxt == null || hh == null || mm == null) {
-            pintarAdvertencia("⚠️ Por favor complete todos los campos.");
-            return;
-        }
-        if (origen.equals(destino)) {
-            pintarAdvertencia("⚠️ La parada de origen y destino no pueden ser la misma.");
-            return;
-        }
+		// Default selection
+		comboHora.getSelectionModel().select(Integer.valueOf(10));
+		comboMinuto.getSelectionModel().select(Integer.valueOf(0));
 
-        int dia = diasMap.get(diaTxt);
-        LocalTime hora = LocalTime.of(hh, mm);
+		// Languages
+		String nombreEs = resources.getString("nombreIdiomaEs");
+		String nombreEn = resources.getString("nombreIdiomaEn");
+		String nombrePt = resources.getString("nombreIdiomaPt");
+		String nombreFr = resources.getString("nombreIdiomaFr");
 
-        try {
-            var recorridos = coordinador.calcularRecorrido(origen, destino, dia, hora);
-            mostrarResultados(recorridos);
-        } catch (Exception ex) {
-            pintarError("❌ Error al calcular el recorrido: " + ex.getMessage());
-        }
-    }
+		idiomasDisponibles.put(nombreEs, "es");
+		idiomasDisponibles.put(nombreEn, "en");
+		idiomasDisponibles.put(nombrePt, "pt");
+		idiomasDisponibles.put(nombreFr, "fr");
 
-    /**
-     * Displays the list of available routes in the results area.
-     * */
-    private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
-        if (listaRecorridos == null || listaRecorridos.isEmpty()) {
-            resultadoArea.setText("ℹ️ No hay recorridos disponibles para la búsqueda realizada.");
-            resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
-            return;
-        }
+		comboIdioma.getItems().setAll(nombreEs, nombreEn, nombrePt, nombreFr);
+		comboIdioma.setValue(nombreEs);
+		Locale actual = Coordinador.getLocaleActual();
+		String idiomaInterfazActual = idiomasDisponibles.entrySet().stream()
+				.filter(entry -> entry.getValue().equals(actual.getLanguage())).map(Map.Entry::getKey).findFirst()
+				.orElse(nombreEs);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("═══════════════════════════════════════════\n");
-        sb.append("          RECORRIDOS DISPONIBLES\n");
-        sb.append("═══════════════════════════════════════════\n\n");
+		comboIdioma.setValue(idiomaInterfazActual);
 
-        int i = 1;
-        for (var opcion : listaRecorridos) {
-            sb.append("🚏 Opción ").append(i++).append(":\n");
-            sb.append("───────────────────────────────────────────\n");
-            for (var r : opcion) {
-                if (r.getLinea() != null) {
-                    sb.append("  🚍 Línea: ").append(r.getLinea().getNombre())
-                      .append(" (").append(r.getLinea().getCodigo()).append(")\n");
-                } else {
-                    sb.append("  🚶 Tramo Caminando\n");
-                }
-                var ps = r.getParadas();
-                if (!ps.isEmpty()) {
-                    sb.append("     Desde: ").append(ps.get(0).getDireccion()).append("\n");
-                    sb.append("     Hasta: ").append(ps.get(ps.size() - 1).getDireccion()).append("\n");
-                }
-                sb.append("     Sale:  ").append(r.getHoraSalida()).append("\n");
+		// comboIdioma.getScene().getWindow();
+		comboIdioma.setOnAction(this::handleCambiarIdioma);
+	}
 
-                int totalSeg = r.getDuracion();
-                int min = totalSeg / 60;
-                int seg = totalSeg % 60;
+	/**
+	 * Private method called when the Calcular button is pressed. Validates input
+	 * and requests available routes from the coordinator.
+	 */
+	@FXML
+	private void onCalcular() {
+		Parada origen = comboOrigen.getValue();
+		Parada destino = comboDestino.getValue();
+		String diaTxt = comboDia.getValue();
+		Integer hh = comboHora.getValue();
+		Integer mm = comboMinuto.getValue();
 
-                sb.append("     Duración: ").append(min).append(" min");
-                if (seg != 0) {
-                    sb.append(" ").append(seg).append(" seg");
-                }
-                sb.append("\n\n");
-            }
-        }
-        resultadoArea.setText(sb.toString());
-        resultadoArea.setStyle("-fx-control-inner-background: #f8f9fa; -fx-text-fill: black;");
-    }
+		if (origen == null || destino == null || diaTxt == null || hh == null || mm == null) {
+			pintarAdvertencia(resources.getString("advertenciaCompletaCampos"));
+			return;
+		}
+		if (origen.equals(destino)) {
+			pintarAdvertencia(resources.getString("advertenciaOrigenDestinoIguales"));
+			return;
+		}
+		String claveDiaLimpia = diaTxt.trim().toLowerCase();
 
-    /**
-     * Generates a list of integers within a given range.
-     * Used to populate ComboBoxes for hours and minutes.
-     * @param desde Starting integer value.
-     * @param hasta Ending integer value.
-     * @return a list containing all integers in the specified range.
-     * */
-    private List<Integer> rango(int desde, int hasta) {
-        List<Integer> l = new ArrayList<>();
-        for (int i = desde; i <= hasta; i++) l.add(i);
-        return l;
-    }
+		int dia = diasMap.get(claveDiaLimpia);
+		LocalTime hora = LocalTime.of(hh, mm);
 
-    /**
-     * Used for displaying hours and minutes consistently.
-     * @return a StringConverter for formatting integer values with two digits.
-     * */
-    private StringConverter<Integer> dosDigitos() {
-        return new StringConverter<Integer>() {
-            @Override public String toString(Integer value) {
-                if (value == null) return "";
-                return String.format("%02d", value);
-            }
-            @Override public Integer fromString(String s) {
-                return (s == null || s.isEmpty()) ? null : Integer.valueOf(s);
-            }
-        };
-    }
+		try {
+			var recorridos = coordinador.calcularRecorrido(origen, destino, dia, hora);
+			mostrarResultados(recorridos);
+		} catch (Exception ex) {
+			pintarError(resources.getString("errorCalculo") + ex.getMessage());
+		}
+	}
 
-    /**
-     * Displays a warning message in the results area.
-     * @param msg The warning message to be shown.
-     * */
-    private void pintarAdvertencia(String msg) {
-        resultadoArea.setText(msg);
-        resultadoArea.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
-    }
+	/**
+	 * Displays the list of available routes in the results area.
+	 */
+	private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
+		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
+			LOGGER.info("No se encontraron resultados disponibles.");
+			resultadoArea.setText(resources.getString("resultadoNoDisponible"));
+			resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
+			return;
+		}
 
-    /**
-     * Displays an error message in the results area.
-     * @param msg The error message to be shown.
-     * */
-    private void pintarError(String msg) {
-        resultadoArea.setText(msg);
-        resultadoArea.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
-    }
+		StringBuilder sb = new StringBuilder();
+		sb.append(resources.getString("formatoHorizontal")).append("\n");
+		sb.append("            		    ").append(resources.getString("resultadoTitulo")).append("\n");
+		sb.append(resources.getString("formatoHorizontal")).append("\n\n");
+
+		int i = 1;
+		for (var opcion : listaRecorridos) {
+			sb.append(resources.getString("opcion")).append(" ").append(i++).append(":\n");
+			sb.append(resources.getString("formatoSeparador")).append("\n");
+			for (var r : opcion) {
+				if (r.getLinea() != null) {
+					sb.append(resources.getString("linea")).append(" ").append(r.getLinea().getNombre()).append(" (")
+							.append(r.getLinea().getCodigo()).append(")\n");
+				} else {
+					sb.append(resources.getString("tramoCaminando")).append("\n");
+				}
+				var ps = r.getParadas();
+				if (!ps.isEmpty()) {
+					sb.append("     ").append(resources.getString("desde")).append(" ").append(ps.get(0).getDireccion())
+							.append("\n");
+					sb.append("     ").append(resources.getString("hasta")).append(" ")
+							.append(ps.get(ps.size() - 1).getDireccion()).append("\n");
+				}
+				sb.append("     ").append(resources.getObject("sale")).append("  ").append(r.getHoraSalida())
+						.append("\n");
+
+				int totalSeg = r.getDuracion();
+				int min = totalSeg / 60;
+				int seg = totalSeg % 60;
+
+				sb.append("     ").append(resources.getString("duracion")).append(" ").append(min).append(" ")
+						.append(resources.getString("minutos"));
+				if (seg != 0) {
+					sb.append(" ").append(seg).append(" ").append(resources.getString("segundos"));
+				}
+				sb.append("\n\n");
+			}
+		}
+		resultadoArea.setText(sb.toString());
+		resultadoArea.setStyle("-fx-control-inner-background: #f8f9fa; -fx-text-fill: black;");
+	}
+
+	/***/
+	public void handleCambiarIdioma(ActionEvent event) {
+		String idiomaSeleccionado = comboIdioma.getValue();
+		if (idiomaSeleccionado != null) {
+			String codigoIdioma = idiomasDisponibles.get(idiomaSeleccionado);
+			if (codigoIdioma != null)
+				coordinador.cambiarIdioma(codigoIdioma);
+			else
+				LOGGER.warn("Código de idioma no encontrado para: {}", idiomaSeleccionado);
+		}
+	}
+
+	/**
+	 * Generates a list of integers within a given range. Used to populate
+	 * ComboBoxes for hours and minutes.
+	 * 
+	 * @param desde Starting integer value.
+	 * @param hasta Ending integer value.
+	 * @return a list containing all integers in the specified range.
+	 */
+	private List<Integer> rango(int desde, int hasta) {
+		List<Integer> l = new ArrayList<>();
+		for (int i = desde; i <= hasta; i++)
+			l.add(i);
+		return l;
+	}
+
+	/**
+	 * Used for displaying hours and minutes consistently.
+	 * 
+	 * @return a StringConverter for formatting integer values with two digits.
+	 */
+	private StringConverter<Integer> dosDigitos() {
+		return new StringConverter<Integer>() {
+			@Override
+			public String toString(Integer value) {
+				if (value == null)
+					return "";
+				return String.format("%02d", value);
+			}
+
+			@Override
+			public Integer fromString(String s) {
+				return (s == null || s.isEmpty()) ? null : Integer.valueOf(s);
+			}
+		};
+	}
+
+	/**
+	 * Displays a warning message in the results area.
+	 * 
+	 * @param msg The warning message to be shown.
+	 */
+	private void pintarAdvertencia(String msg) {
+		resultadoArea.setText(msg);
+		resultadoArea.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
+	}
+
+	/**
+	 * Displays an error message in the results area.
+	 * 
+	 * @param msg The error message to be shown.
+	 */
+	private void pintarError(String msg) {
+		resultadoArea.setText(msg);
+		resultadoArea.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
+	}
 }

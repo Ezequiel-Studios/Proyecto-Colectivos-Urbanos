@@ -1,6 +1,5 @@
 package colectivo.util;
 
-
 import java.time.LocalTime;
 
 public class Tiempo {

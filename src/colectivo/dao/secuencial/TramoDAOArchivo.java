@@ -8,7 +8,6 @@ import colectivo.modelo.Tramo;
 import java.util.Map;
 import java.util.Properties;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,30 +22,30 @@ public class TramoDAOArchivo implements TramoDAO {
 	private boolean actualizar;
 
 	/**
-	 * Constructor that loads configuration properties, initizalizes
-	 * stops and prepares the structure to store segments.
-	 * */
+	 * Constructor that loads configuration properties, initizalizes stops and
+	 * prepares the structure to store segments.
+	 */
 	public TramoDAOArchivo() {
 		Properties prop = new Properties();
-		InputStream input = null;
-		try {
-			input = new FileInputStream("config.properties");
+		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+
+			if (input == null) {
+				System.err.println(
+						"Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde TramoDAO).");
+				throw new IOException("Archivo config.properties no encontrado en classpath.");
+			}
+
 			prop.load(input);
+
 			this.rutaArchivo = prop.getProperty("tramo");
+
 			if (this.rutaArchivo == null) {
 				System.err.println("Error crítico: La clave 'tramo' no se encontró en config.properties.");
 			}
+
 		} catch (IOException ex) {
 			System.err.println("Error crítico: No se pudo leer el archivo config.properties en TramoDAO.");
 			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
 		}
 
 		this.paradasDisponibles = cargarParadas();
@@ -56,25 +55,25 @@ public class TramoDAOArchivo implements TramoDAO {
 
 	@Override
 	public void insertar(Tramo tramo) {
-		
+
 	}
 
 	@Override
 	public void actualizar(Tramo tramo) {
-		
+
 	}
 
 	@Override
 	public void borrar(Tramo tramo) {
-		
+
 	}
 
 	/**
-	 * Returns all bus segments (Tramo) currently loaded.
-	 * If the data needs to refreshed, reads them from the
-	 * file first.
+	 * Returns all bus segments (Tramo) currently loaded. If the data needs to
+	 * refreshed, reads them from the file first.
+	 * 
 	 * @return a map containing all loaded segment objects.
-	 * */
+	 */
 	@Override
 	public Map<String, Tramo> buscarTodos() {
 		if (this.rutaArchivo == null) {
@@ -89,8 +88,8 @@ public class TramoDAOArchivo implements TramoDAO {
 	}
 
 	/**
-	 * Private method that contains the logic required to read and process 
-	 * the file.
+	 * Private method that contains the logic required to read and process the file.
+	 * 
 	 * @param ruta the route of the file to be read.
 	 * @return a map loaded with the segments (Tramo).
 	 */
@@ -132,6 +131,7 @@ public class TramoDAOArchivo implements TramoDAO {
 
 	/**
 	 * Private method responsible for retrieving the dependency (the map of stops)
+	 * 
 	 * @return the map loaded with stops.
 	 */
 	private Map<Integer, Parada> cargarParadas() {

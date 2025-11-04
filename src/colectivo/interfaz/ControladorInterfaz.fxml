@@ -16,8 +16,12 @@
     </padding>
 
     <!-- Título centrado -->
+    <HBox alignment="TOP_RIGHT" spacing="5">
+    	<Label text="%etiquetaIdioma"/> 
+    	<ComboBox fx:id="comboIdioma" prefWidth="150" />
+    </HBox>
     <HBox alignment="CENTER">
-        <Label text="Consulta de Recorridos"
+        <Label text="%tituloAplicacion"
                style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-padding: 5 0 10 0;"/>
     </HBox>
 
@@ -26,16 +30,16 @@
           maxWidth="460"
           style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
 
-        <Label text="Parada de Origen:" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <Label text="%etiquetaOrigen" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
         <ComboBox fx:id="comboOrigen" maxWidth="Infinity"/>
 
-        <Label text="Parada de Destino:" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <Label text="%etiquetaDestino" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
         <ComboBox fx:id="comboDestino" maxWidth="Infinity"/>
 
-        <Label text="Día de la Semana:" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <Label text="%etiquetaDia" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
         <ComboBox fx:id="comboDia" maxWidth="Infinity"/>
 
-        <Label text="Hora de Llegada:" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <Label text="%etiquetaHora" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
         <HBox spacing="8">
             <ComboBox fx:id="comboHora" prefWidth="90"/>
             <Label text=":" style="-fx-font-size: 16; -fx-text-fill: #2c3e50; -fx-padding: 0 4 0 4;"/>
@@ -43,7 +47,7 @@
         </HBox>
 
         <Button fx:id="btnCalcular"
-                text="🔍 Calcular Recorrido"
+                text="%botonCalcular"
                 onAction="#onCalcular"
                 maxWidth="Infinity"
                 styleClass="primary-button"/>
@@ -53,7 +57,7 @@
     <VBox spacing="8"
           maxWidth="460"
           style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
-        <Label text="Resultados:" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <Label text="%etiquetaResultados" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
         <TextArea fx:id="resultadoArea"
                   editable="false"
                   prefRowCount="12"
