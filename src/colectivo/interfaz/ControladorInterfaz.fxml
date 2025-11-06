@@ -16,7 +16,7 @@
         <Insets topRightBottomLeft="20"/>
     </padding>
 
-    <VBox spacing="15" fillWidth="true" maxWidth="460">
+    <VBox spacing="15" fillWidth="true" prefWidth="420">
         
         <HBox alignment="TOP_RIGHT" spacing="5">
             <Label text="%etiquetaIdioma"/> 

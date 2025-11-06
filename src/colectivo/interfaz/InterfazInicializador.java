@@ -51,14 +51,23 @@ public class InterfazInicializador extends Application {
 					resources);
 			List<Parada> paradasDisponibles = coordinador.getParadas();
 			Parent root = loader.load();
-			Scene scene = new Scene(root, 1200, 800);
+			
+			Scene scene = primaryStage.getScene();
+			if (scene == null) {
+				// Si no existe (primera carga), la creamos con el tamaño base
+				scene = new Scene(root, 1200, 800);
+				primaryStage.setScene(scene);
+			} else {
+				// Si ya existe (es un refresco de idioma), SOLO reemplazamos el contenido
+				scene.setRoot(root);
+			}
+			
 			scene.getStylesheets().add(getClass().getResource("/colectivo/interfaz/estilos.css").toExternalForm());
 
 			ControladorInterfaz controller = loader.getController();
 			controller.init(coordinador, paradasDisponibles, resources, primaryStage);
-
-			primaryStage.setTitle(resources.getString("tituloVentana"));
-			primaryStage.setScene(scene);
+			
+			primaryStage.setMaximized(true);
 			primaryStage.show();
 
 		} catch (Exception e) {
