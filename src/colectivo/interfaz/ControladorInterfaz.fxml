@@ -3,11 +3,12 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.web.WebView?>
 
-<VBox xmlns="http://javafx.com/javafx/8.0.171"
+<HBox xmlns="http://javafx.com/javafx/8.0.171"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="colectivo.interfaz.ControladorInterfaz"
-      spacing="15" fillWidth="true"
+      spacing="20" fillHeight="true" 
       alignment="TOP_CENTER"
       style="-fx-background-color: linear-gradient(to bottom, #ecf0f1, #bdc3c7);">
 
@@ -15,52 +16,64 @@
         <Insets topRightBottomLeft="20"/>
     </padding>
 
-    <!-- Título centrado -->
-    <HBox alignment="TOP_RIGHT" spacing="5">
-    	<Label text="%etiquetaIdioma"/> 
-    	<ComboBox fx:id="comboIdioma" prefWidth="150" />
-    </HBox>
-    <HBox alignment="CENTER">
-        <Label text="%tituloAplicacion"
-               style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-padding: 5 0 10 0;"/>
-    </HBox>
-
-    <!-- Card de formulario -->
-    <VBox spacing="10"
-          maxWidth="460"
-          style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
-
-        <Label text="%etiquetaOrigen" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
-        <ComboBox fx:id="comboOrigen" maxWidth="Infinity"/>
-
-        <Label text="%etiquetaDestino" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
-        <ComboBox fx:id="comboDestino" maxWidth="Infinity"/>
-
-        <Label text="%etiquetaDia" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
-        <ComboBox fx:id="comboDia" maxWidth="Infinity"/>
-
-        <Label text="%etiquetaHora" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
-        <HBox spacing="8">
-            <ComboBox fx:id="comboHora" prefWidth="90"/>
-            <Label text=":" style="-fx-font-size: 16; -fx-text-fill: #2c3e50; -fx-padding: 0 4 0 4;"/>
-            <ComboBox fx:id="comboMinuto" prefWidth="90"/>
+    <VBox spacing="15" fillWidth="true" maxWidth="460">
+        
+        <HBox alignment="TOP_RIGHT" spacing="5">
+            <Label text="%etiquetaIdioma"/> 
+            <ComboBox fx:id="comboIdioma" prefWidth="150" />
+        </HBox>
+        <HBox alignment="CENTER">
+            <Label text="%tituloAplicacion"
+                   style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: #2c3e50; -fx-padding: 5 0 10 0;"/>
         </HBox>
 
-        <Button fx:id="btnCalcular"
-                text="%botonCalcular"
-                onAction="#onCalcular"
-                maxWidth="Infinity"
-                styleClass="primary-button"/>
+        <VBox spacing="10"
+              maxWidth="460"
+              style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
+
+            <Label text="%etiquetaOrigen" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+            <ComboBox fx:id="comboOrigen" maxWidth="Infinity"/>
+
+            <Label text="%etiquetaDestino" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+            <ComboBox fx:id="comboDestino" maxWidth="Infinity"/>
+
+            <Label text="%etiquetaDia" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+            <ComboBox fx:id="comboDia" maxWidth="Infinity"/>
+
+            <Label text="%etiquetaHora" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+            <HBox spacing="8">
+                <ComboBox fx:id="comboHora" prefWidth="90"/>
+                <Label text=":" style="-fx-font-size: 16; -fx-text-fill: #2c3e50; -fx-padding: 0 4 0 4;"/>
+                <ComboBox fx:id="comboMinuto" prefWidth="90"/>
+            </HBox>
+
+			<CheckBox fx:id="checkFeriado" text="%checkEsFeriado" />
+
+            <Button fx:id="btnCalcular"
+                    text="%botonCalcular"
+                    onAction="#onCalcular"
+                    maxWidth="Infinity"
+                    styleClass="primary-button"/>
+        </VBox>
+
+        <VBox spacing="8"
+              maxWidth="460"
+              VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
+            <Label text="%etiquetaResultados" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+            <TextArea fx:id="resultadoArea"
+                      editable="false"
+                      VBox.vgrow="ALWAYS"
+                      prefRowCount="12"
+                      style="-fx-control-inner-background: #f8f9fa; -fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-border-color: #dcdde1; -fx-border-width: 1; -fx-border-radius: 5;"/>
+        </VBox>
+        
     </VBox>
 
-    <!-- Card de resultados -->
+
     <VBox spacing="8"
-          maxWidth="460"
-          style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
-        <Label text="%etiquetaResultados" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
-        <TextArea fx:id="resultadoArea"
-                  editable="false"
-                  prefRowCount="12"
-                  style="-fx-control-inner-background: #f8f9fa; -fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-border-color: #dcdde1; -fx-border-width: 1; -fx-border-radius: 5;"/>
-    </VBox>
-</VBox>
+          HBox.hgrow="ALWAYS" 
+          VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);">
+        <Label text="%etiquetaMapa" style="-fx-text-fill: #34495e; -fx-font-weight: bold;"/>
+        <WebView fx:id="webViewMapa" VBox.vgrow="ALWAYS" /> </VBox>
+    
+</HBox>

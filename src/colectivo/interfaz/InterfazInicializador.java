@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class InterfazInicializador extends Application {
+
 	private static Coordinador coordinador;
 	private static InterfazInicializador instance;
 	private Stage primaryStage;
@@ -50,7 +51,7 @@ public class InterfazInicializador extends Application {
 					resources);
 			List<Parada> paradasDisponibles = coordinador.getParadas();
 			Parent root = loader.load();
-			Scene scene = new Scene(root, 700, 700);
+			Scene scene = new Scene(root, 1200, 800);
 			scene.getStylesheets().add(getClass().getResource("/colectivo/interfaz/estilos.css").toExternalForm());
 
 			ControladorInterfaz controller = loader.getController();

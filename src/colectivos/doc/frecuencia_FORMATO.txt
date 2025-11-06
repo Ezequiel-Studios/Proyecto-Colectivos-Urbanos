@@ -11,5 +11,4 @@ Día de la semana:
 4 = Jueves
 5 = Viernes
 6 = Sábado
-8 = Domingo (También usado para los días feriados)
-
+7 = Domingo (También usado para los días feriados)

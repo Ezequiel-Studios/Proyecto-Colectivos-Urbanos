@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapa de Colectivos (OpenLayers)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+    <style>
+		html, body {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+		}
+        #map { height: 100%; width: 100%; } 
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    <script>
+        // Coordenadas de Puerto Madryn como centro por defecto (Latitud, Longitud)
+        var centerLat = -42.7692;
+        var centerLon = -65.0385;
+        
+        // La proyección por defecto del mapa es EPSG:3857, pero las coordenadas son EPSG:4326 (WGS84).
+        // Se necesita ol.proj.fromLonLat para la conversión.
+        var initialCoords = ol.proj.fromLonLat([centerLon, centerLat]);
+
+        // =============================================================
+        // 1. Inicialización del Mapa y Capas Base
+        // =============================================================
+        
+        // Fuente para marcadores y la ruta
+        var vectorSource = new ol.source.Vector();
+        
+        // Capa para renderizar los elementos dinámicos (marcadores y ruta)
+        var vectorLayer = new ol.layer.Vector({
+            source: vectorSource
+        });
+
+        // Inicialización del objeto Map
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                // Capa base de OpenStreetMap
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                }),
+                // Añade la capa vectorial dinámica
+                vectorLayer
+            ],
+            view: new ol.View({
+                center: initialCoords,
+                zoom: 13
+            })
+        });
+
+        // Almacenamiento de Features (marcadores y línea) para fácil remoción.
+        var featuresMap = {}; // { origen: feature, destino: feature, recorrido: feature }
+
+        // =============================================================
+        // 2. Funciones de Estilos
+        // =============================================================
+
+        // Crea un estilo para un punto, diferenciado por color (rojo/azul)
+        function createMarkerStyle(color, direccion) {
+            return new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 8,
+                    fill: new ol.style.Fill({ color: color }),
+                    stroke: new ol.style.Stroke({ color: '#FFF', width: 2 })
+                }),
+                text: new ol.style.Text({
+                    text: direccion,
+                    font: 'bold 12px sans-serif',
+                    fill: new ol.style.Fill({ color: '#000' }),
+                    stroke: new ol.style.Stroke({ color: '#FFF', width: 3 }),
+                    offsetY: 15
+                })
+            });
+        }
+        
+        // =============================================================
+        // 3. Funciones llamadas desde Java (JavaFX)
+        // =============================================================
+
+        // 'tipo' es 'origen' o 'destino'
+        window.marcarParada = function(lat, lon, direccion, tipo) {
+            if (featuresMap[tipo]) {
+                vectorSource.removeFeature(featuresMap[tipo]);
+            }
+
+            var color = (tipo === 'origen') ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)';
+            var style = createMarkerStyle(color, direccion);
+            
+            var coords = ol.proj.fromLonLat([lon, lat]);
+            var feature = new ol.Feature({
+                geometry: new ol.geom.Point(coords)
+            });
+            feature.setStyle(style);
+
+            vectorSource.addFeature(feature);
+            featuresMap[tipo] = feature;
+
+            map.getView().animate({ center: coords, duration: 500, zoom: 14 });
+        }
+
+        // Dibuja el recorrido
+        window.dibujarRecorrido = function(coordenadasJson) {
+            window.limpiarRecorrido();
+            
+            var puntosProyectados = coordenadasJson.map(function(c) {
+                return ol.proj.fromLonLat([c.lon, c.lat]); 
+            });
+
+            var lineFeature = new ol.Feature({
+                geometry: new ol.geom.LineString(puntosProyectados)
+            });
+
+            var lineStyle = new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'rgba(0, 128, 0, 0.8)', 
+                    width: 5
+                })
+            });
+            lineFeature.setStyle(lineStyle);
+
+            vectorSource.addFeature(lineFeature);
+            featuresMap['recorrido'] = lineFeature;
+            
+            var extent = lineFeature.getGeometry().getExtent();
+            map.getView().fit(extent, { 
+                padding: [40, 40, 40, 40], 
+                duration: 1000 
+            });
+        }
+        
+        // Limpia el recorrido
+        window.limpiarRecorrido = function() {
+            if (featuresMap['recorrido']) {
+                vectorSource.removeFeature(featuresMap['recorrido']);
+                featuresMap['recorrido'] = null;
+            }
+        }
+    </script>
+</body>
+</html>

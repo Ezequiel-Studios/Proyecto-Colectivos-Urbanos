@@ -11,11 +11,15 @@ import java.util.ResourceBundle;
 import colectivo.controlador.Coordinador;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
@@ -40,6 +44,12 @@ public class ControladorInterfaz {
 	private TextArea resultadoArea;
 	@FXML
 	private ComboBox<String> comboIdioma;
+	@FXML
+	private CheckBox checkFeriado;
+	@FXML
+	private WebView webViewMapa;
+	@FXML
+	private WebEngine webEngine;
 
 	private Coordinador coordinador;
 	private ResourceBundle resources;
@@ -61,6 +71,9 @@ public class ControladorInterfaz {
 		comboOrigen.getItems().setAll(paradasDisponibles);
 		comboDestino.getItems().setAll(paradasDisponibles);
 
+		comboOrigen.setOnAction(e -> handleSeleccionParada(comboOrigen.getValue(), "origen"));
+		comboDestino.setOnAction(e -> handleSeleccionParada(comboDestino.getValue(), "destino"));
+
 		// Days of the week
 		String clavesDias[] = { "diaLunes", "diaMartes", "diaMiercoles", "diaJueves", "diaViernes", "diaSabado",
 				"diaDomingo" };
@@ -77,6 +90,17 @@ public class ControladorInterfaz {
 		comboDia.getItems().setAll(diasTraducidos);
 
 		comboDia.getSelectionModel().select(resources.getString("diaLunes").trim());
+
+		comboDia.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+			if (newVal != null) {
+				String claveDomingo = resources.getString("diaDomingo").trim().toLowerCase();
+				boolean esDomingo = newVal.trim().toLowerCase().equals(claveDomingo);
+
+				checkFeriado.setDisable(esDomingo);
+				if (esDomingo)
+					checkFeriado.setSelected(false);
+			}
+		});
 
 		// Hour and minute (two digits)
 		comboHora.getItems().setAll(rango(0, 23));
@@ -108,8 +132,12 @@ public class ControladorInterfaz {
 
 		comboIdioma.setValue(idiomaInterfazActual);
 
-		// comboIdioma.getScene().getWindow();
 		comboIdioma.setOnAction(this::handleCambiarIdioma);
+
+		// map
+		this.webEngine = webViewMapa.getEngine();
+		String mapaHtmlUrl = getClass().getResource("mapa.html").toExternalForm();
+		webEngine.load(mapaHtmlUrl);
 	}
 
 	/**
@@ -118,8 +146,8 @@ public class ControladorInterfaz {
 	 */
 	@FXML
 	private void onCalcular() {
-		Parada origen = comboOrigen.getValue();
-		Parada destino = comboDestino.getValue();
+		final Parada origen = comboOrigen.getValue();
+		final Parada destino = comboDestino.getValue();
 		String diaTxt = comboDia.getValue();
 		Integer hh = comboHora.getValue();
 		Integer mm = comboMinuto.getValue();
@@ -132,17 +160,50 @@ public class ControladorInterfaz {
 			pintarAdvertencia(resources.getString("advertenciaOrigenDestinoIguales"));
 			return;
 		}
+
 		String claveDiaLimpia = diaTxt.trim().toLowerCase();
 
-		int dia = diasMap.get(claveDiaLimpia);
-		LocalTime hora = LocalTime.of(hh, mm);
+		int diaInicial = diasMap.get(claveDiaLimpia);
 
-		try {
-			var recorridos = coordinador.calcularRecorrido(origen, destino, dia, hora);
-			mostrarResultados(recorridos);
-		} catch (Exception ex) {
-			pintarError(resources.getString("errorCalculo") + ex.getMessage());
+		String claveDomingo = resources.getString("diaDomingo").trim().toLowerCase();
+		if (checkFeriado.isSelected() && !claveDiaLimpia.equals(claveDomingo)) {
+			diaInicial = 7;
+			LOGGER.info("Día marcado como feriado. Usando código de día: {}", diaInicial);
 		}
+
+		final int dia = diaInicial;
+		final LocalTime hora = LocalTime.of(hh, mm);
+
+		Task<List<List<Recorrido>>> task = new Task<>() {
+			@Override
+			protected List<List<Recorrido>> call() throws Exception {
+				LOGGER.info("Task de cálculo iniciado en hilo de fondo...");
+
+				Thread.sleep(2000);
+				return coordinador.calcularRecorrido(origen, destino, dia, hora);
+			}
+		};
+
+		btnCalcular.setDisable(true);
+		resultadoArea.setText("Calculando...");
+		resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1;");
+
+		task.setOnSucceeded(event -> {
+			javafx.application.Platform.runLater(() -> {
+				mostrarResultados(task.getValue());
+				btnCalcular.setDisable(false);
+			});
+		});
+
+		task.setOnFailed(event -> {
+			javafx.application.Platform.runLater(() -> {
+				Throwable ex = task.getException();
+				LOGGER.error("Task de cálculo falló.", ex);
+				pintarError("Error: " + ex.getMessage());
+				btnCalcular.setDisable(false);
+			});
+		});
+		new Thread(task).start();
 	}
 
 	/**
@@ -153,8 +214,14 @@ public class ControladorInterfaz {
 			LOGGER.info("No se encontraron resultados disponibles.");
 			resultadoArea.setText(resources.getString("resultadoNoDisponible"));
 			resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
+
+			if (webEngine != null)
+				webEngine.executeScript("limpiarRecorrido()");
 			return;
 		}
+
+		if (webEngine != null)
+			webEngine.executeScript("limpiarRecorrido()");
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(resources.getString("formatoHorizontal")).append("\n");
@@ -196,6 +263,30 @@ public class ControladorInterfaz {
 		}
 		resultadoArea.setText(sb.toString());
 		resultadoArea.setStyle("-fx-control-inner-background: #f8f9fa; -fx-text-fill: black;");
+
+		if (webEngine != null && !listaRecorridos.isEmpty()) {
+			List<Recorrido> opcion = listaRecorridos.get(0);
+
+			List<Parada> paradasMapa = new ArrayList<>();
+			for (Recorrido r : opcion) {
+				if (paradasMapa.isEmpty() || !paradasMapa.get(paradasMapa.size() - 1).equals(r.getParadas().get(0)))
+					paradasMapa.addAll(r.getParadas());
+				else
+					paradasMapa.addAll(r.getParadas().subList(1, r.getParadas().size()));
+			}
+
+			StringBuilder jsonBuilder = new StringBuilder("[");
+			for (int j = 0; j < paradasMapa.size(); j++) {
+				Parada p = paradasMapa.get(j);
+				jsonBuilder.append(
+						String.format(Locale.ROOT, "{\"lat\":%f, \"lon\":%f}", p.getLatitud(), p.getLongitud()));
+				if (j < paradasMapa.size() - 1)
+					jsonBuilder.append(",");
+			}
+			jsonBuilder.append("]");
+			String jsDraw = "dibujarRecorrido(" + jsonBuilder.toString() + ");";
+			webEngine.executeScript(jsDraw);
+		}
 	}
 
 	/***/
@@ -207,6 +298,16 @@ public class ControladorInterfaz {
 				coordinador.cambiarIdioma(codigoIdioma);
 			else
 				LOGGER.warn("Código de idioma no encontrado para: {}", idiomaSeleccionado);
+		}
+	}
+
+	/***/
+	public void handleSeleccionParada(Parada parada, String tipo) {
+		if (parada != null && webEngine != null) {
+			String jsCall = String.format(Locale.ROOT, "marcarParada(%f, %f, '%s', '%s');", parada.getLatitud(),
+					parada.getLongitud(), parada.getDireccion(), tipo);
+
+			webEngine.executeScript(jsCall);
 		}
 	}
 

@@ -60,7 +60,6 @@ public class Coordinador {
 			LOGGER.fatal("Error crítico: Falló la inicialización del Modelo (DAO/Factory).", e);
 		} catch (IOException e) {
 			LOGGER.fatal("Error de infraestructura: Los datos críticos no se pudieron cargar o están vacíos.", e);
-			// e.printStackTrace();
 		}
 	}
 
