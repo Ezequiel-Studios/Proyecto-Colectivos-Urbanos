@@ -23,7 +23,7 @@ import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
 import colectivo.modelo.Tramo;
 
-class TestCalcularRecorridoDAO_GP {
+class TestCalcularRecorrido_GP {
 
 	private Map<Integer, Parada> paradas;
 	private Map<String, Linea> lineas;

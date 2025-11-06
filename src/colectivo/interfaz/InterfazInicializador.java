@@ -78,4 +78,19 @@ public class InterfazInicializador extends Application {
 		cargarInterfaz();
 
 	}
+
+	/**
+	 * Este método es llamado automáticamente por JavaFX cuando se cierra la ventana
+	 * principal (al apretar la 'X').
+	 */
+	@Override
+	public void stop() throws Exception {
+		LOGGER.info("Aplicación cerrándose. Apagando servicios...");
+
+		if (coordinador != null) {
+			coordinador.apagarServicioDeHilos();
+		}
+
+		super.stop();
+	}
 }

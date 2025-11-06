@@ -203,7 +203,8 @@ public class ControladorInterfaz {
 				btnCalcular.setDisable(false);
 			});
 		});
-		new Thread(task).start();
+
+		coordinador.ejecutarCalculo(task);
 	}
 
 	/**

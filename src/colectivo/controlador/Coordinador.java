@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import javafx.concurrent.Task;
 
 import colectivo.conexion.Factory;
 import colectivo.dao.LineaDAO;
@@ -35,6 +38,8 @@ public class Coordinador {
 	private List<Recorrido> recorridos;
 	private Map<String, Tramo> tramos;
 	private static final Logger LOGGER = LogManager.getLogger(Coordinador.class);
+
+	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
 	public Coordinador() {
 		this.calculo = new Calculo();
@@ -163,5 +168,22 @@ public class Coordinador {
 
 	public void iniciarSistema() {
 		InterfazInicializador.lanzar(this);
+	}
+
+	/**
+	 * Recibe una tarea (Task) desde el controlador de la interfaz y la pone en la
+	 * cola para que la ejecute el ExecutorService.
+	 */
+	public void ejecutarCalculo(Task<List<List<Recorrido>>> tarea) {
+		executorService.submit(tarea);
+	}
+
+	/**
+	 * Apaga el pool de hilos de forma ordenada. Se debe llamar cuando la aplicación
+	 * se cierra.
+	 */
+	public void apagarServicioDeHilos() {
+		LOGGER.info("Apagando el ExecutorService...");
+		executorService.shutdown();
 	}
 }
