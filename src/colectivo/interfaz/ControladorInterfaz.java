@@ -18,6 +18,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -45,9 +47,11 @@ public class ControladorInterfaz {
 	@FXML
 	private Button btnCalcular;
 	@FXML
+	private Button btnLimpiar;
+	@FXML
 	private Accordion accordionResultados;
 	@FXML
-	private ComboBox<String> comboIdioma;
+	private MenuButton menuIdioma;
 	@FXML
 	private CheckBox checkFeriado;
 	@FXML
@@ -119,26 +123,35 @@ public class ControladorInterfaz {
 		comboMinuto.getSelectionModel().select(Integer.valueOf(0));
 
 		// Languages
+		// Languages (para el MenuButton)
+		// Nota: El Map 'idiomasDisponibles' ya debe estar definido como campo de la
+		// clase.
 		String nombreEs = resources.getString("nombreIdiomaEs");
 		String nombreEn = resources.getString("nombreIdiomaEn");
 		String nombrePt = resources.getString("nombreIdiomaPt");
 		String nombreFr = resources.getString("nombreIdiomaFr");
 
-		idiomasDisponibles.put(nombreEs, "es");
-		idiomasDisponibles.put(nombreEn, "en");
-		idiomasDisponibles.put(nombrePt, "pt");
-		idiomasDisponibles.put(nombreFr, "fr");
+		// Si el map no está inicializado, lo hacemos (esto es por si acaso)
+		if (idiomasDisponibles.isEmpty()) {
+			idiomasDisponibles.put(nombreEs, "es");
+			idiomasDisponibles.put(nombreEn, "en");
+			idiomasDisponibles.put(nombrePt, "pt");
+			idiomasDisponibles.put(nombreFr, "fr");
+		}
 
-		comboIdioma.getItems().setAll(nombreEs, nombreEn, nombrePt, nombreFr);
-		comboIdioma.setValue(nombreEs);
-		Locale actual = Coordinador.getLocaleActual();
-		String idiomaInterfazActual = idiomasDisponibles.entrySet().stream()
-				.filter(entry -> entry.getValue().equals(actual.getLanguage())).map(Map.Entry::getKey).findFirst()
-				.orElse(nombreEs);
+		MenuItem itemEs = new MenuItem(nombreEs);
+		itemEs.setOnAction(e -> cambiarIdiomaSiEsNecesario(nombreEs));
 
-		comboIdioma.setValue(idiomaInterfazActual);
+		MenuItem itemEn = new MenuItem(nombreEn);
+		itemEn.setOnAction(e -> cambiarIdiomaSiEsNecesario(nombreEn));
 
-		comboIdioma.setOnAction(this::handleCambiarIdioma);
+		MenuItem itemPt = new MenuItem(nombrePt);
+		itemPt.setOnAction(e -> cambiarIdiomaSiEsNecesario(nombrePt));
+
+		MenuItem itemFr = new MenuItem(nombreFr);
+		itemFr.setOnAction(e -> cambiarIdiomaSiEsNecesario(nombreFr));
+
+		menuIdioma.getItems().setAll(itemEs, itemEn, itemPt, itemFr);
 
 		// map
 		this.webEngine = webViewMapa.getEngine();
@@ -185,7 +198,7 @@ public class ControladorInterfaz {
 			protected List<List<Recorrido>> call() throws Exception {
 				LOGGER.info("Task de cálculo iniciado en hilo de fondo...");
 
-				Thread.sleep(2000);
+				Thread.sleep(2000); //agregado para ver como funciona
 				return coordinador.calcularRecorrido(origen, destino, dia, hora);
 			}
 		};
@@ -213,6 +226,33 @@ public class ControladorInterfaz {
 		});
 
 		coordinador.ejecutarCalculo(task);
+	}
+
+	/**
+	 * Se llama cuando el usuario presiona "Limpiar". Resetea los campos de entrada
+	 * y los resultados.
+	 */
+	@FXML
+	private void onLimpiar() {
+		LOGGER.info("Limpiando selecciones y resultados.");
+
+		// 1. Limpiar ComboBoxes de Paradas
+		comboOrigen.setValue(null);
+		comboDestino.setValue(null);
+
+		// 2. Resetear día y hora a los valores por defecto
+		comboDia.getSelectionModel().select(resources.getString("diaLunes").trim());
+		comboHora.getSelectionModel().select(Integer.valueOf(10));
+		comboMinuto.getSelectionModel().select(Integer.valueOf(0));
+		checkFeriado.setSelected(false);
+
+		// 3. Limpiar resultados (el Accordion)
+		accordionResultados.getPanes().clear();
+
+		// 4. Limpiar el mapa
+		if (webEngine != null) {
+			webEngine.executeScript("limpiarRecorrido()");
+		}
 	}
 
 	/**
@@ -348,15 +388,18 @@ public class ControladorInterfaz {
 		}
 	}
 
-	/***/
-	public void handleCambiarIdioma(ActionEvent event) {
-		String idiomaSeleccionado = comboIdioma.getValue();
-		if (idiomaSeleccionado != null) {
-			String codigoIdioma = idiomasDisponibles.get(idiomaSeleccionado);
-			if (codigoIdioma != null)
-				coordinador.cambiarIdioma(codigoIdioma);
-			else
-				LOGGER.warn("Código de idioma no encontrado para: {}", idiomaSeleccionado);
+	/**
+	 * Llama al coordinador para cambiar el idioma, solo si el idioma seleccionado
+	 * es diferente al actual.
+	 * 
+	 * @param nombreIdiomaElige El nombre (String) del idioma elegido.
+	 */
+	private void cambiarIdiomaSiEsNecesario(String nombreIdiomaElegido) {
+		String codigoIdioma = idiomasDisponibles.get(nombreIdiomaElegido);
+		if (codigoIdioma != null && !codigoIdioma.equals(Coordinador.getLocaleActual().getLanguage())) {
+			coordinador.cambiarIdioma(codigoIdioma);
+		} else {
+			LOGGER.debug("Idioma seleccionado ({}) ya es el actual.", codigoIdioma);
 		}
 	}
 

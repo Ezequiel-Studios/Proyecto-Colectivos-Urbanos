@@ -7,8 +7,53 @@
     -fx-padding: 10px;
     -fx-background-radius: 8;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 2);
+	
+    -fx-transition: -fx-background-color 0.2s, -fx-effect 0.2s;
 }
+
 .primary-button:hover {
     -fx-background-color: #2980b9;
     -fx-cursor: hand;
+	
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 3);
+}
+
+/* Botón secundario (para "Limpiar") */
+.secondary-button {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #34495e;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px;
+    -fx-background-radius: 8;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #bdc3c7;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 1);
+}
+
+
+/* Estilo para el botón de menú de idioma */
+.icon-menu-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+    -fx-background-radius: 5;
+}
+
+.icon-menu-button:hover {
+    -fx-background-color: #dcdde1;
+    -fx-cursor: hand;
+}
+
+/* Quita la flechita que traen los MenuButton por defecto */
+.icon-menu-button > .arrow-button {
+    -fx-padding: 0;
+}
+.icon-menu-button > .arrow-button > .arrow {
+    -fx-padding: 0;
 }

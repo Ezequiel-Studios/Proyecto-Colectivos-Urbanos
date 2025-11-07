@@ -111,7 +111,6 @@ public class Coordinador {
 		return calculo.calcularRecorrido(origen, destino, diaSemana, hora, tramos);
 	}
 
-	/***/
 	public void cambiarIdioma(String codigoIdioma) {
 		Locale nuevoLocale = Locale.of(codigoIdioma);
 
@@ -134,7 +133,6 @@ public class Coordinador {
 		return localeActual;
 	}
 
-	/***/
 	public ResourceBundle getResourceBundle() {
 		return ResourceBundle.getBundle(BUNDLE_BASE_NAME, localeActual);
 	}
