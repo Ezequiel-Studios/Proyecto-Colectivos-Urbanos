@@ -18,6 +18,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.ImageView;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
@@ -49,6 +50,8 @@ public class ControladorInterfaz {
 	private WebView webViewMapa;
 	@FXML
 	private WebEngine webEngine;
+	@FXML
+	private ImageView animacionCarga;
 
 	private Coordinador coordinador;
 	private ResourceBundle resources;
@@ -184,11 +187,13 @@ public class ControladorInterfaz {
 		};
 
 		btnCalcular.setDisable(true);
+		animacionCarga.setVisible(true);
 		resultadoArea.setText("Calculando...");
 		resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1;");
 
 		task.setOnSucceeded(event -> {
 			javafx.application.Platform.runLater(() -> {
+				animacionCarga.setVisible(false);
 				mostrarResultados(task.getValue());
 				btnCalcular.setDisable(false);
 			});
@@ -196,6 +201,7 @@ public class ControladorInterfaz {
 
 		task.setOnFailed(event -> {
 			javafx.application.Platform.runLater(() -> {
+				animacionCarga.setVisible(false);
 				Throwable ex = task.getException();
 				LOGGER.error("Task de cálculo falló.", ex);
 				pintarError("Error: " + ex.getMessage());
