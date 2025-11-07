@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.InputStream;
 
 public class ParadaDAOArchivo implements ParadaDAO {
@@ -16,6 +20,7 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	private String rutaArchivo;
 	private Map<Integer, Parada> paradasMap;
 	private boolean actualizar;
+	private static final Logger LOGGER = LogManager.getLogger(ParadaDAOArchivo.class);
 
 	/**
 	 * Constructor that loads configuration properties, initizalizes stops and
@@ -26,7 +31,7 @@ public class ParadaDAOArchivo implements ParadaDAO {
 		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
 
 			if (input == null) {
-				System.err.println("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src.");
+				LOGGER.fatal("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src.");
 				throw new IOException("Archivo config.properties no encontrado en classpath.");
 			}
 
@@ -35,12 +40,11 @@ public class ParadaDAOArchivo implements ParadaDAO {
 			this.rutaArchivo = prop.getProperty("parada");
 
 			if (this.rutaArchivo == null) {
-				System.err.println("Error crítico: La clave 'parada' no se encontró en config.properties.");
+				LOGGER.fatal("Error crítico: La clave 'parada' no se encontró en config.properties.");
 			}
 
 		} catch (IOException ex) {
-			System.err.println("Error crítico: No se pudo leer el archivo config.properties.");
-			ex.printStackTrace();
+			LOGGER.fatal("Error crítico: No se pudo leer el archivo config.properties en ParadaDAO.", ex);
 		}
 
 		this.paradasMap = new LinkedHashMap<>();
@@ -84,6 +88,7 @@ public class ParadaDAOArchivo implements ParadaDAO {
 	 * @return a map loaded with the stops.
 	 */
 	private Map<Integer, Parada> leerDelArchivo(String ruta) {
+		LOGGER.info("Comenzando la lectura del archivo de paradas: {}", ruta);
 		Map<Integer, Parada> paradas = new LinkedHashMap<>();
 		try (BufferedReader br = new BufferedReader(new FileReader(ruta))) {
 			String linea;
@@ -100,8 +105,7 @@ public class ParadaDAOArchivo implements ParadaDAO {
 				paradas.put(codigo, parada);
 			}
 		} catch (IOException | NumberFormatException e) {
-			System.err.println("Error al leer o procesar el archivo de paradas: " + ruta);
-			e.printStackTrace();
+			LOGGER.error("Error al leer o procesar el archivo de paradas: {}", ruta, e);
 			return Collections.emptyMap();
 		}
 		return paradas;

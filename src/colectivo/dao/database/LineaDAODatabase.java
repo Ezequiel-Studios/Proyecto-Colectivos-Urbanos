@@ -9,6 +9,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import colectivo.conexion.BDConexion;
 import colectivo.conexion.Factory;
 import colectivo.dao.LineaDAO;
@@ -19,6 +22,7 @@ import colectivo.modelo.Parada;
 public class LineaDAODatabase implements LineaDAO {
 
 	private final Map<Integer, Parada> paradasDisponibles;
+	private static final Logger LOGGER = LogManager.getLogger(LineaDAODatabase.class);
 
 	public LineaDAODatabase() {
 		this.paradasDisponibles = cargarParadas();
@@ -46,7 +50,7 @@ public class LineaDAODatabase implements LineaDAO {
 		Connection conn = null;
 
 		if (this.paradasDisponibles == null || this.paradasDisponibles.isEmpty()) {
-			System.err.println("Error: No se pudieron cargar las paradas necesarias para leer las líneas.");
+			LOGGER.fatal("Error: No se pudieron cargar las paradas necesarias para leer las líneas.");
 			return Collections.emptyMap();
 		}
 
@@ -100,8 +104,7 @@ public class LineaDAODatabase implements LineaDAO {
 			}
 
 		} catch (SQLException e) {
-			System.err.println("Error al cargar datos de líneas desde la BD:");
-			e.printStackTrace();
+			LOGGER.fatal("Error al cargar datos de líneas desde la BD: ", e);
 			return Collections.emptyMap();
 		}
 
@@ -113,8 +116,7 @@ public class LineaDAODatabase implements LineaDAO {
 			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
-			System.err.println("Error al obtener ParadaDAO desde la Factory en LineaDAO:");
-			e.printStackTrace();
+			LOGGER.error("Error al obtener ParadaDAO desde la Factory en LineaDAO: ", e);
 			return Collections.emptyMap();
 		}
 	}

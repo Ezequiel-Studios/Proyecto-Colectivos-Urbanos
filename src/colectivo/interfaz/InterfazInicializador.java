@@ -54,11 +54,9 @@ public class InterfazInicializador extends Application {
 			
 			Scene scene = primaryStage.getScene();
 			if (scene == null) {
-				// Si no existe (primera carga), la creamos con el tamaño base
 				scene = new Scene(root, 1200, 800);
 				primaryStage.setScene(scene);
 			} else {
-				// Si ya existe (es un refresco de idioma), SOLO reemplazamos el contenido
 				scene.setRoot(root);
 			}
 			

@@ -7,6 +7,10 @@ import colectivo.modelo.Parada;
 import colectivo.modelo.Tramo;
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -20,6 +24,7 @@ public class TramoDAOArchivo implements TramoDAO {
 	private Map<Integer, Parada> paradasDisponibles;
 	private Map<String, Tramo> tramosMap;
 	private boolean actualizar;
+	private static final Logger LOGGER = LogManager.getLogger(TramoDAOArchivo.class);
 
 	/**
 	 * Constructor that loads configuration properties, initizalizes stops and
@@ -30,8 +35,7 @@ public class TramoDAOArchivo implements TramoDAO {
 		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
 
 			if (input == null) {
-				System.err.println(
-						"Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde TramoDAO).");
+				LOGGER.error("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde TramoDAO).");
 				throw new IOException("Archivo config.properties no encontrado en classpath.");
 			}
 
@@ -40,12 +44,11 @@ public class TramoDAOArchivo implements TramoDAO {
 			this.rutaArchivo = prop.getProperty("tramo");
 
 			if (this.rutaArchivo == null) {
-				System.err.println("Error crítico: La clave 'tramo' no se encontró en config.properties.");
+				LOGGER.fatal("Error crítico: la clave 'tramo' no se encontró en config.properties.");
 			}
 
 		} catch (IOException ex) {
-			System.err.println("Error crítico: No se pudo leer el archivo config.properties en TramoDAO.");
-			ex.printStackTrace();
+			LOGGER.error("Error crítico: No se pudo leer el archivo config.properties en TramoDAO.", ex);
 		}
 
 		this.paradasDisponibles = cargarParadas();
@@ -77,12 +80,13 @@ public class TramoDAOArchivo implements TramoDAO {
 	@Override
 	public Map<String, Tramo> buscarTodos() {
 		if (this.rutaArchivo == null) {
-			System.err.println("Error: No se puede buscar tramos porque la ruta del archivo es nula.");
+			LOGGER.warn("Error: No se puede buscar tramos porque la ruta del archivo es nula.");
 			return Collections.emptyMap();
 		}
 		if (actualizar) {
 			this.tramosMap = leerDelArchivo(this.rutaArchivo);
 			this.actualizar = false;
+			LOGGER.info("Carga de tramos finalizada con éxito. Tramos cargados: {}", this.tramosMap.size());
 		}
 		return this.tramosMap;
 	}
@@ -97,7 +101,7 @@ public class TramoDAOArchivo implements TramoDAO {
 		Map<String, Tramo> tramos = new LinkedHashMap<>();
 
 		if (paradasDisponibles == null || paradasDisponibles.isEmpty()) {
-			System.err.println("Error: No se pueden cargar los tramos sin las paradas. El mapa de paradas está vacío.");
+			LOGGER.error("Error: No se pueden cargar los tramos sin las paradas. El mapa de paradas está vacío.");
 			return Collections.emptyMap();
 		}
 
@@ -120,10 +124,12 @@ public class TramoDAOArchivo implements TramoDAO {
 					Tramo tramo = new Tramo(paradaInicio, paradaFin, tiempo, tipo);
 					String clave = codigoInicio + "-" + codigoFin;
 					tramos.put(clave, tramo);
+				}else {
+					LOGGER.warn("Tramo omitido: Parada {} o parada {} no encontrada en el sistema.", codigoInicio, codigoFin);
 				}
 			}
 		} catch (IOException | NumberFormatException e) {
-			e.printStackTrace();
+			LOGGER.error("Error al leer o procesar el archivo de tramos.", e);
 			return Collections.emptyMap();
 		}
 		return tramos;
@@ -140,8 +146,7 @@ public class TramoDAOArchivo implements TramoDAO {
 			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
-			System.err.println("Error al obtener ParadaDAO desde la Factory en TramoDAO.");
-			e.printStackTrace();
+			LOGGER.error("Error al obtener ParadaDAO desde la Factory en TramoDAO.", e);
 			return Collections.emptyMap();
 		}
 	}

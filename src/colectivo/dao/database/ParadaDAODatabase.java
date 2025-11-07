@@ -8,11 +8,16 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import colectivo.conexion.BDConexion;
 import colectivo.dao.ParadaDAO;
 import colectivo.modelo.Parada;
 
 public class ParadaDAODatabase implements ParadaDAO {
+	
+	private static final Logger LOGGER = LogManager.getLogger(ParadaDAODatabase.class);
 
 	@Override
 	public void insertar(Parada parada) {
@@ -46,8 +51,7 @@ public class ParadaDAODatabase implements ParadaDAO {
 				}
 			}
 		} catch (SQLException e) {
-			System.err.println("Error al buscar todas las paradas en la BD:");
-			e.printStackTrace();
+			LOGGER.fatal("Error al buscar todas las paradas en la BD: ", e);
 			return Collections.emptyMap();
 		}
 		return paradas;

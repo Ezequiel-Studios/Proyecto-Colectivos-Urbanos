@@ -8,6 +8,10 @@ import colectivo.modelo.Parada;
 
 import java.util.Map;
 import java.util.Properties;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -23,18 +27,19 @@ public class LineaDAOArchivo implements LineaDAO {
 	private final Map<Integer, Parada> paradasDisponibles;
 	private Map<String, Linea> lineasMap;
 	private boolean actualizar;
+	private static final Logger LOGGER = LogManager.getLogger(LineaDAOArchivo.class);
 
 	/**
 	 * Constructor that loads configuration properties, initizalizes stops and
 	 * prepares the structure to store lines.
 	 */
 	public LineaDAOArchivo() {
+		LOGGER.info("Iniciando LineaDAOArchivo: carga de configuración.");
 		Properties prop = new Properties();
 		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
 
 			if (input == null) {
-				System.err.println(
-						"Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde LineaDAO).");
+				LOGGER.fatal("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde LineaDAO).");
 				throw new IOException("Archivo config.properties no encontrado en classpath.");
 			}
 
@@ -44,11 +49,10 @@ public class LineaDAOArchivo implements LineaDAO {
 			this.rutaArchivoFrecuencias = prop.getProperty("frecuencia");
 
 			if (this.rutaArchivo == null || this.rutaArchivoFrecuencias == null) {
-				System.err.println("Error crítico: Claves 'linea' o 'frecuencia' no encontradas en config.properties.");
+				LOGGER.fatal("Error crítico: Claves 'linea' o 'frecuencia' no encontradas en config.properties.");
 			}
 		} catch (IOException ex) {
-			System.err.println("Error crítico: No se pudo leer config.properties en LineaDAO.");
-			ex.printStackTrace();
+			LOGGER.fatal("Error crítico: No se pudo leer config.properties en LineaDAO.", ex);
 		}
 
 		this.paradasDisponibles = cargarParadas();
@@ -80,12 +84,13 @@ public class LineaDAOArchivo implements LineaDAO {
 	@Override
 	public Map<String, Linea> buscarTodos() {
 		if (this.rutaArchivo == null || this.rutaArchivoFrecuencias == null) {
-			System.err.println("Error: No se pueden buscar líneas porque las rutas de los archivos son nulas.");
+			LOGGER.warn("Error: No se puede buscar líneas porque las rutas de los archivos son nulas.");
 			return Collections.emptyMap();
 		}
 		if (actualizar) {
 			this.lineasMap = leerDelArchivo();
 			this.actualizar = false;
+			LOGGER.info("Carga de líneas finalizada con éxito. Líneas cargadas: {}", this.lineasMap.size());
 		}
 		return this.lineasMap;
 	}
@@ -101,7 +106,7 @@ public class LineaDAOArchivo implements LineaDAO {
 		Map<String, Linea> lineas = new LinkedHashMap<>();
 
 		if (this.paradasDisponibles == null || this.paradasDisponibles.isEmpty()) {
-			System.err.println("Error: No se pudieron cargar las paradas necesarias para leer las líneas.");
+			LOGGER.error("Error: No se pudieron cargar las paradas necesarias para leer las líneas.");
 			return Collections.emptyMap();
 		}
 
@@ -126,8 +131,7 @@ public class LineaDAOArchivo implements LineaDAO {
 				lineas.put(codigo, linea);
 			}
 		} catch (IOException | NumberFormatException e) {
-			System.err.println("Error al leer o procesar el archivo de líneas: " + this.rutaArchivo);
-			e.printStackTrace();
+			LOGGER.error("Error al leer o procesar el archivo de líneas: {}.", this.rutaArchivo, e);
 		}
 
 		try (BufferedReader br = new BufferedReader(new FileReader(rutaArchivoFrecuencias))) {
@@ -147,8 +151,7 @@ public class LineaDAOArchivo implements LineaDAO {
 				}
 			}
 		} catch (IOException | RuntimeException e) {
-			System.err.println("Error al leer o procesar el archivo de frecuencias: " + this.rutaArchivoFrecuencias);
-			e.printStackTrace();
+			LOGGER.error("Error al leer o procesar el archivo de frecuencias: {}.", this.rutaArchivoFrecuencias, e);
 		}
 
 		return lineas;
@@ -164,8 +167,7 @@ public class LineaDAOArchivo implements LineaDAO {
 			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
-			System.err.println("Error al obtener ParadaDAO desde la Factory en LineaDAO.");
-			e.printStackTrace();
+			LOGGER.error("Error al obtener ParadaDAO desde la Factory en LineaDAO.", e);
 			return Collections.emptyMap();
 		}
 	}

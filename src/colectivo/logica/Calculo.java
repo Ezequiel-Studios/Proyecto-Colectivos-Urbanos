@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import colectivo.conexion.Factory;
 import colectivo.controlador.Constantes;
 import colectivo.dao.LineaDAO;
@@ -21,35 +24,45 @@ import colectivo.modelo.Tramo;
 public class Calculo {
 
 	private static Map<String, Linea> lineasDelSistema = null;
+	private static final Logger LOGGER = LogManager.getLogger(Calculo.class);
 
 	public Calculo() {
 	}
 
+	/**
+	 * Calcula los posibles recorridos entre dos paradas, siguiendo la regla de
+	 * prioridad: 1.Directo, 2.Bus-Bus, 3.Bus-Caminando.
+	 * 
+	 * @param paradaOrigen    parada de inicio del viaje.
+	 * @param paradaDestino   parada de destino
+	 * @param diaSemana       día de semana para la búsqueda
+	 * @param horaLlegaParada
+	 * @param tramos          mapa de tramos disponibles
+	 * @return una lista de listas con todos los recorridos hallados.
+	 */
 	public List<List<Recorrido>> calcularRecorrido(Parada paradaOrigen, Parada paradaDestino, int diaSemana,
 			LocalTime horaLlegaParada, Map<String, Tramo> tramos) {
 
+		LOGGER.debug("Iniciando cálculo de recorrido de {} a {}.", paradaOrigen.getCodigo(), paradaDestino.getCodigo());
 		if (lineasDelSistema == null) {
 			try {
 				LineaDAO lineaDAO = (LineaDAO) Factory.getInstancia("LINEA");
 				lineasDelSistema = lineaDAO.buscarTodos();
 				if (lineasDelSistema == null || lineasDelSistema.isEmpty()) {
-					System.err.println("Error crítico: LineaDAO devolvió un mapa nulo o vacío.");
+					LOGGER.error("Error crítico: LineaDAO devolvió un mapa nulo o vacío.");
 					return Collections.emptyList();
 				}
 			} catch (Exception e) {
-				System.err.println("Error crítico al cargar las líneas dentro de Calculo: " + e.getMessage());
-				e.printStackTrace();
+				LOGGER.error("Error crítico al cargar las líneas dentro de Calculo: ", e.getMessage());
 				return Collections.emptyList();
 			}
 		}
 
 		List<List<Recorrido>> todosLosResultados = new ArrayList<>();
-
 		buscarViajesDirectos(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos, todosLosResultados);
 
 		if (!todosLosResultados.isEmpty()) {
-			System.out.println("Búsqueda: Se encontraron " + todosLosResultados.size() + " viajes directos.");
-
+			LOGGER.info("Cálculo finalizado. Se encontraron {} resultados directos.", todosLosResultados.size());
 			Collections.sort(todosLosResultados, Comparator.comparing(viaje -> viaje.get(0).getLinea().getCodigo()));
 			return todosLosResultados;
 		}
@@ -57,8 +70,7 @@ public class Calculo {
 		buscarConexionBusBus(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos, todosLosResultados);
 
 		if (!todosLosResultados.isEmpty()) {
-			System.out.println(
-					"Búsqueda: No hay directos. Se encontraron " + todosLosResultados.size() + " conexiones Bus-Bus.");
+			LOGGER.info("Cálculo finalizado. Se encontraron {} resultados con conexión.", todosLosResultados.size());
 			Collections.sort(todosLosResultados, Comparator.comparing(viaje -> viaje.get(viaje.size() - 1)
 					.getHoraSalida().plusSeconds(viaje.get(viaje.size() - 1).getDuracion())));
 			return todosLosResultados;
@@ -66,8 +78,8 @@ public class Calculo {
 
 		buscarConexionCaminando(paradaOrigen, paradaDestino, diaSemana, horaLlegaParada, tramos, todosLosResultados);
 
-		System.out.println("Búsqueda: No hay directos ni Bus-Bus. Se encontraron " + todosLosResultados.size()
-				+ " conexiones caminando.");
+		LOGGER.info("Cálculo finalizado. Se encontraron {} resultados con conexión caminando.",
+				todosLosResultados.size());
 		Collections.sort(todosLosResultados, Comparator.comparing(viaje -> {
 			Recorrido ultimoTramo = viaje.get(viaje.size() - 1);
 			return ultimoTramo.getHoraSalida().plusSeconds(ultimoTramo.getDuracion());
@@ -76,9 +88,21 @@ public class Calculo {
 		return todosLosResultados;
 	}
 
+	/**
+	 * Busca rutas directas (un único colectivo) entre la parada de origen y de
+	 * destino.
+	 * 
+	 * @param paradaOrigen
+	 * @param paradaDestino
+	 * @param diaSemana
+	 * @param horaLlegaParada
+	 * @param tramos
+	 * @param todosLosResultados lista con todos los recorridos encontrados.
+	 */
 	private void buscarViajesDirectos(Parada paradaOrigen, Parada paradaDestino, int diaSemana,
 			LocalTime horaLlegaParada, Map<String, Tramo> tramos, List<List<Recorrido>> todosLosResultados) {
 
+		LOGGER.debug("Buscando viajes directos de {} a {}.", paradaOrigen.getCodigo(), paradaDestino.getCodigo());
 		for (Linea linea : lineasDelSistema.values()) {
 			List<Parada> paradasDeLaLinea = linea.getParadas();
 			int idxOrigen = paradasDeLaLinea.indexOf(paradaOrigen);
@@ -110,8 +134,7 @@ public class Calculo {
 
 							primeraEncontrada = true;
 						} else {
-							System.err
-									.println("Error: Índice fuera de rango (Directo) para línea " + linea.getCodigo());
+							LOGGER.error("Error: Índice fuera de rango (Directo) para línea ", linea.getCodigo());
 						}
 					}
 				}
@@ -119,7 +142,20 @@ public class Calculo {
 		}
 	}
 
+	/**
+	 * Calcula el tiempo de viaje (solo tramos COLECTIVO) entre dos índices de
+	 * parada.
+	 * 
+	 * @param paradas   lista con todas las paradas
+	 * @param idxInicio índice de parada de origen
+	 * @param idxFin    índice de parada de destino
+	 * @param tramos    mapa con los tramos disponibles
+	 * @return el tiempo entre paradas.
+	 */
 	private int calcularTiempoEntreParadas(List<Parada> paradas, int idxInicio, int idxFin, Map<String, Tramo> tramos) {
+
+		LOGGER.debug("Calculando tiempo de {} ({}) a {} ({})", paradas.get(idxInicio).getCodigo(), idxInicio,
+				paradas.get(idxFin).getCodigo(), idxFin);
 		int tiempo = 0;
 		for (int i = idxInicio; i < idxFin; i++) {
 			if (i + 1 < paradas.size()) {
@@ -128,18 +164,31 @@ public class Calculo {
 
 				if (tramo != null && tramo.getTipo() == Constantes.COLECTIVO) {
 					tiempo += tramo.getTiempo();
+					LOGGER.debug(" -> Sumo tramo: {} ({}s). Total: {}s", clave, tramo.getTiempo(), tiempo);
 				}
 			} else {
-				System.err.println("Error: Índice fuera de rango en calcularTiempoEntreParadas.");
+				LOGGER.error("Error: Índice fuera de rango en calcularTiempoEntreParadas.");
 				break;
 			}
 		}
+		LOGGER.info("Duración final calculada: {} segundos.", tiempo);
 		return tiempo;
 	}
 
+	/**
+	 * Busca conexiones únicamente entre colectivos (Bus-Bus).
+	 * 
+	 * @param paradaOrigen
+	 * @param paradaDestino
+	 * @param diaSemana
+	 * @param horaLlegaParada
+	 * @param tramos
+	 * @param todosLosResultados
+	 */
 	private void buscarConexionBusBus(Parada paradaOrigen, Parada paradaDestino, int diaSemana,
 			LocalTime horaLlegaParada, Map<String, Tramo> tramos, List<List<Recorrido>> todosLosResultados) {
 
+		LOGGER.debug("Buscando viajes con conexión de {} a {}.", paradaOrigen.getCodigo(), paradaDestino.getCodigo());
 		Set<String> combinacionesEncontradas = new HashSet<>();
 
 		for (Linea lineaA : lineasDelSistema.values()) {
@@ -184,9 +233,21 @@ public class Calculo {
 		}
 	}
 
+	/**
+	 * Busca conexiones Bus-Caminando-Bus.
+	 * 
+	 * @param paradaOrigen
+	 * @param paradaDestino
+	 * @param diaSemana
+	 * @param horaLlegaParada
+	 * @param tramos
+	 * @param todosLosResultados
+	 */
 	private void buscarConexionCaminando(Parada paradaOrigen, Parada paradaDestino, int diaSemana,
 			LocalTime horaLlegaParada, Map<String, Tramo> tramos, List<List<Recorrido>> todosLosResultados) {
 
+		LOGGER.debug("Buscando viajes con conexión caminando de {} a {}.", paradaOrigen.getCodigo(),
+				paradaDestino.getCodigo());
 		Set<String> combinacionesEncontradas = new HashSet<>();
 
 		for (Linea lineaA : lineasDelSistema.values()) {
@@ -243,9 +304,22 @@ public class Calculo {
 		}
 	}
 
+	/**
+	 * Método ayudante para calcular un solo tramo de viaje. Encuentra el primer
+	 * colectivo disponible para un segmento.
+	 * 
+	 * @param linea
+	 * @param diaSemana
+	 * @param idxInicio
+	 * @param idxFin
+	 * @param horaMinima
+	 * @param tramos
+	 * @return el recorrido encontrado.
+	 */
 	private Recorrido calcularTramoDeViaje(Linea linea, int diaSemana, int idxInicio, int idxFin, LocalTime horaMinima,
 			Map<String, Tramo> tramos) {
 
+		LOGGER.debug("Calculando tramo de viaje con conexión caminando de {} a {}.", idxInicio, idxFin);
 		int tiempoHastaInicioTramo = calcularTiempoEntreParadas(linea.getParadas(), 0, idxInicio, tramos);
 
 		Iterator<Linea.Frecuencia> iter = linea.getFrecuencias().iterator();

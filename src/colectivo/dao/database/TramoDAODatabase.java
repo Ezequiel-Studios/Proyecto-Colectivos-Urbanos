@@ -8,6 +8,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import colectivo.conexion.BDConexion;
 import colectivo.conexion.Factory;
 import colectivo.dao.ParadaDAO;
@@ -16,7 +19,9 @@ import colectivo.modelo.Parada;
 import colectivo.modelo.Tramo;
 
 public class TramoDAODatabase implements TramoDAO {
+	
 	private final Map<Integer, Parada> paradasDisponibles;
+	private static final Logger LOGGER = LogManager.getLogger(TramoDAODatabase.class);
 
 	public TramoDAODatabase() {
 		this.paradasDisponibles = cargarParadas();
@@ -45,7 +50,7 @@ public class TramoDAODatabase implements TramoDAO {
 		Connection conn = null;
 
 		if (this.paradasDisponibles == null || this.paradasDisponibles.isEmpty()) {
-			System.err.println("Error: No se pudieron cargar las paradas necesarias para leer los tramos.");
+			LOGGER.fatal("Error: No se pudieron cargar las paradas necesarias para leer los tramos.");
 			return Collections.emptyMap();
 		}
 
@@ -67,14 +72,12 @@ public class TramoDAODatabase implements TramoDAO {
 						String clave = codigoInicio + "-" + codigoFin;
 						tramos.put(clave, tramo);
 					} else {
-						System.err.println(
-								"Advertencia: Tramo con paradas huérfanas omitido: " + codigoInicio + "->" + codigoFin);
+						LOGGER.warn("Advertencia: Tramo con paradas huérfanas omitido: " + codigoInicio + "->" + codigoFin);
 					}
 				}
 			}
 		} catch (SQLException e) {
-			System.err.println("Error al buscar todos los tramos en la BD:");
-			e.printStackTrace();
+			LOGGER.fatal("Error al buscar todos los tramos en la BD: ", e);
 			return Collections.emptyMap();
 		}
 		return tramos;
@@ -85,8 +88,7 @@ public class TramoDAODatabase implements TramoDAO {
 			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
-			System.err.println("Error al obtener ParadaDAO desde la Factory en TramoDAO:");
-			e.printStackTrace();
+			LOGGER.fatal("Error al obtener ParadaDAO desde la Factory en TramoDAO: ", e);
 			return Collections.emptyMap();
 		}
 	}

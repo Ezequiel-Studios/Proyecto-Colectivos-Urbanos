@@ -12,7 +12,6 @@ import colectivo.controlador.Coordinador;
 import colectivo.modelo.Parada;
 import colectivo.modelo.Recorrido;
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -131,7 +130,6 @@ public class ControladorInterfaz {
 		String nombrePt = resources.getString("nombreIdiomaPt");
 		String nombreFr = resources.getString("nombreIdiomaFr");
 
-		// Si el map no está inicializado, lo hacemos (esto es por si acaso)
 		if (idiomasDisponibles.isEmpty()) {
 			idiomasDisponibles.put(nombreEs, "es");
 			idiomasDisponibles.put(nombreEn, "en");
@@ -236,20 +234,16 @@ public class ControladorInterfaz {
 	private void onLimpiar() {
 		LOGGER.info("Limpiando selecciones y resultados.");
 
-		// 1. Limpiar ComboBoxes de Paradas
 		comboOrigen.setValue(null);
 		comboDestino.setValue(null);
 
-		// 2. Resetear día y hora a los valores por defecto
 		comboDia.getSelectionModel().select(resources.getString("diaLunes").trim());
 		comboHora.getSelectionModel().select(Integer.valueOf(10));
 		comboMinuto.getSelectionModel().select(Integer.valueOf(0));
 		checkFeriado.setSelected(false);
 
-		// 3. Limpiar resultados (el Accordion)
 		accordionResultados.getPanes().clear();
 
-		// 4. Limpiar el mapa
 		if (webEngine != null) {
 			webEngine.executeScript("limpiarRecorrido()");
 		}
@@ -262,7 +256,7 @@ public class ControladorInterfaz {
 	 * Displays the list of available routes in the results Accordion.
 	 */
 	private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
-		accordionResultados.getPanes().clear(); // Limpia resultados anteriores
+		accordionResultados.getPanes().clear();
 
 		if (webEngine != null)
 			webEngine.executeScript("limpiarRecorrido()");
@@ -270,13 +264,12 @@ public class ControladorInterfaz {
 		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
 			LOGGER.info("No se encontraron resultados disponibles.");
 
-			// Si no hay resultados, creamos un panel de "Información"
 			Label labelInfo = new Label(resources.getString("resultadoNoDisponible"));
 			TitledPane panelInfo = new TitledPane("Información", labelInfo);
 			panelInfo.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
 
 			accordionResultados.getPanes().add(panelInfo);
-			accordionResultados.setExpandedPane(panelInfo); // Lo mostramos expandido
+			accordionResultados.setExpandedPane(panelInfo);
 			return;
 		}
 
@@ -284,7 +277,6 @@ public class ControladorInterfaz {
 		int i = 1;
 		for (var opcion : listaRecorridos) {
 
-			// --- 1. Generar el TÍTULO del panel (Ej: "Opción 1: (Línea 1)") ---
 			String tituloPanel = resources.getString("opcion") + " " + i++;
 			if (!opcion.isEmpty()) {
 				Recorrido primerTramo = opcion.get(0);
@@ -296,7 +288,6 @@ public class ControladorInterfaz {
 				}
 			}
 
-			// --- 2. Generar el CONTENIDO del panel (reciclando tu lógica) ---
 			StringBuilder sbContenido = new StringBuilder();
 			for (var r : opcion) {
 				if (r.getLinea() != null) {
@@ -327,42 +318,29 @@ public class ControladorInterfaz {
 				sbContenido.append("\n\n");
 			}
 
-			// Creamos un Label para el contenido y le damos el estilo de Consolas
 			Label contenidoLabel = new Label(sbContenido.toString());
-			contenidoLabel.setWrapText(true); // Para que el texto se ajuste
-			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;"); // Añadí un
-																										// padding
+			contenidoLabel.setWrapText(true);
+			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;"); 
 
-			// --- NUEVO CÓDIGO ---
-			// 1. Creamos un ScrollPane para que el contenido tenga scroll
 			ScrollPane scrollPane = new ScrollPane();
 			scrollPane.setContent(contenidoLabel);
 
-			// 2. Estilo para que se integre bien y no parezca una caja
 			scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
 
-			// 3. Le decimos que se ajuste al ancho del panel (activa el wrapText del Label)
 			scrollPane.setFitToWidth(true);
 
-			// 4. Le damos un alto máximo para que no sea gigante
-			// (aprox 10-12 líneas de texto antes de scrollear)
 			scrollPane.setMaxHeight(250);
-			// --- FIN NUEVO CÓDIGO ---
 
-			// Creamos el panel con Título y Contenido (usando el ScrollPane)
 			TitledPane panelOpcion = new TitledPane(tituloPanel, scrollPane);
 			nuevosPaneles.add(panelOpcion);
 		}
 
-		// Añadimos todos los paneles nuevos al Accordion
 		accordionResultados.getPanes().setAll(nuevosPaneles);
 
-		// Expandimos la primera opción por defecto para que el usuario la vea
 		if (!nuevosPaneles.isEmpty()) {
 			accordionResultados.setExpandedPane(nuevosPaneles.get(0));
 		}
 
-		// --- 3. Lógica del MAPA (es la misma que tenías) ---
 		if (webEngine != null && !listaRecorridos.isEmpty()) {
 			List<Recorrido> opcion = listaRecorridos.get(0);
 
@@ -454,17 +432,16 @@ public class ControladorInterfaz {
 	 * message to be shown.
 	 */
 	private void pintarAdvertencia(String msg) {
-		accordionResultados.getPanes().clear(); // Limpia paneles anteriores
+		accordionResultados.getPanes().clear();
 
 		Label labelAdvertencia = new Label(msg);
 		labelAdvertencia.setWrapText(true);
 
-		// Creamos un panel de "Advertencia"
 		TitledPane panelAdvertencia = new TitledPane("Advertencia", labelAdvertencia);
 		panelAdvertencia.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
 
 		accordionResultados.getPanes().add(panelAdvertencia);
-		accordionResultados.setExpandedPane(panelAdvertencia); // Lo mostramos expandido
+		accordionResultados.setExpandedPane(panelAdvertencia);
 	}
 
 	/**
@@ -473,16 +450,15 @@ public class ControladorInterfaz {
 	 * @param msg The error message to be shown.
 	 */
 	private void pintarError(String msg) {
-		accordionResultados.getPanes().clear(); // Limpia paneles anteriores
+		accordionResultados.getPanes().clear();
 
 		Label labelError = new Label(msg);
 		labelError.setWrapText(true);
 
-		// Creamos un panel de "Error"
 		TitledPane panelError = new TitledPane("Error", labelError);
 		panelError.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
 
 		accordionResultados.getPanes().add(panelError);
-		accordionResultados.setExpandedPane(panelError); // Lo mostramos expandido
+		accordionResultados.setExpandedPane(panelError);
 	}
 }
