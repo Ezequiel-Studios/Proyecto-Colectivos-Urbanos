@@ -17,11 +17,15 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextArea;
+import javafx.scene.control.Accordion;
+import javafx.scene.control.TitledPane;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
+
 import javafx.util.StringConverter;
 
 import org.apache.logging.log4j.LogManager;
@@ -41,7 +45,7 @@ public class ControladorInterfaz {
 	@FXML
 	private Button btnCalcular;
 	@FXML
-	private TextArea resultadoArea;
+	private Accordion accordionResultados;
 	@FXML
 	private ComboBox<String> comboIdioma;
 	@FXML
@@ -188,8 +192,7 @@ public class ControladorInterfaz {
 
 		btnCalcular.setDisable(true);
 		animacionCarga.setVisible(true);
-		resultadoArea.setText("Calculando...");
-		resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1;");
+		accordionResultados.getPanes().clear();
 
 		task.setOnSucceeded(event -> {
 			javafx.application.Platform.runLater(() -> {
@@ -215,61 +218,111 @@ public class ControladorInterfaz {
 	/**
 	 * Displays the list of available routes in the results area.
 	 */
+	/**
+	 * Displays the list of available routes in the results Accordion.
+	 */
 	private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
-		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
-			LOGGER.info("No se encontraron resultados disponibles.");
-			resultadoArea.setText(resources.getString("resultadoNoDisponible"));
-			resultadoArea.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
-
-			if (webEngine != null)
-				webEngine.executeScript("limpiarRecorrido()");
-			return;
-		}
+		accordionResultados.getPanes().clear(); // Limpia resultados anteriores
 
 		if (webEngine != null)
 			webEngine.executeScript("limpiarRecorrido()");
 
-		StringBuilder sb = new StringBuilder();
-		sb.append(resources.getString("formatoHorizontal")).append("\n");
-		sb.append("            		    ").append(resources.getString("resultadoTitulo")).append("\n");
-		sb.append(resources.getString("formatoHorizontal")).append("\n\n");
+		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
+			LOGGER.info("No se encontraron resultados disponibles.");
 
+			// Si no hay resultados, creamos un panel de "Información"
+			Label labelInfo = new Label(resources.getString("resultadoNoDisponible"));
+			TitledPane panelInfo = new TitledPane("Información", labelInfo);
+			panelInfo.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
+
+			accordionResultados.getPanes().add(panelInfo);
+			accordionResultados.setExpandedPane(panelInfo); // Lo mostramos expandido
+			return;
+		}
+
+		List<TitledPane> nuevosPaneles = new ArrayList<>();
 		int i = 1;
 		for (var opcion : listaRecorridos) {
-			sb.append(resources.getString("opcion")).append(" ").append(i++).append(":\n");
-			sb.append(resources.getString("formatoSeparador")).append("\n");
+
+			// --- 1. Generar el TÍTULO del panel (Ej: "Opción 1: (Línea 1)") ---
+			String tituloPanel = resources.getString("opcion") + " " + i++;
+			if (!opcion.isEmpty()) {
+				Recorrido primerTramo = opcion.get(0);
+				if (primerTramo.getLinea() != null) {
+					tituloPanel += ": (" + resources.getString("linea") + " " + primerTramo.getLinea().getNombre()
+							+ ")";
+				} else {
+					tituloPanel += ": (" + resources.getString("tramoCaminando") + ")";
+				}
+			}
+
+			// --- 2. Generar el CONTENIDO del panel (reciclando tu lógica) ---
+			StringBuilder sbContenido = new StringBuilder();
 			for (var r : opcion) {
 				if (r.getLinea() != null) {
-					sb.append(resources.getString("linea")).append(" ").append(r.getLinea().getNombre()).append(" (")
-							.append(r.getLinea().getCodigo()).append(")\n");
+					sbContenido.append(resources.getString("linea")).append(" ").append(r.getLinea().getNombre())
+							.append(" (").append(r.getLinea().getCodigo()).append(")\n");
 				} else {
-					sb.append(resources.getString("tramoCaminando")).append("\n");
+					sbContenido.append(resources.getString("tramoCaminando")).append("\n");
 				}
 				var ps = r.getParadas();
 				if (!ps.isEmpty()) {
-					sb.append("     ").append(resources.getString("desde")).append(" ").append(ps.get(0).getDireccion())
-							.append("\n");
-					sb.append("     ").append(resources.getString("hasta")).append(" ")
+					sbContenido.append("     ").append(resources.getString("desde")).append(" ")
+							.append(ps.get(0).getDireccion()).append("\n");
+					sbContenido.append("     ").append(resources.getString("hasta")).append(" ")
 							.append(ps.get(ps.size() - 1).getDireccion()).append("\n");
 				}
-				sb.append("     ").append(resources.getObject("sale")).append("  ").append(r.getHoraSalida())
+				sbContenido.append("     ").append(resources.getObject("sale")).append("  ").append(r.getHoraSalida())
 						.append("\n");
 
 				int totalSeg = r.getDuracion();
 				int min = totalSeg / 60;
 				int seg = totalSeg % 60;
 
-				sb.append("     ").append(resources.getString("duracion")).append(" ").append(min).append(" ")
+				sbContenido.append("     ").append(resources.getString("duracion")).append(" ").append(min).append(" ")
 						.append(resources.getString("minutos"));
 				if (seg != 0) {
-					sb.append(" ").append(seg).append(" ").append(resources.getString("segundos"));
+					sbContenido.append(" ").append(seg).append(" ").append(resources.getString("segundos"));
 				}
-				sb.append("\n\n");
+				sbContenido.append("\n\n");
 			}
-		}
-		resultadoArea.setText(sb.toString());
-		resultadoArea.setStyle("-fx-control-inner-background: #f8f9fa; -fx-text-fill: black;");
 
+			// Creamos un Label para el contenido y le damos el estilo de Consolas
+			Label contenidoLabel = new Label(sbContenido.toString());
+			contenidoLabel.setWrapText(true); // Para que el texto se ajuste
+			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;"); // Añadí un
+																										// padding
+
+			// --- NUEVO CÓDIGO ---
+			// 1. Creamos un ScrollPane para que el contenido tenga scroll
+			ScrollPane scrollPane = new ScrollPane();
+			scrollPane.setContent(contenidoLabel);
+
+			// 2. Estilo para que se integre bien y no parezca una caja
+			scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+
+			// 3. Le decimos que se ajuste al ancho del panel (activa el wrapText del Label)
+			scrollPane.setFitToWidth(true);
+
+			// 4. Le damos un alto máximo para que no sea gigante
+			// (aprox 10-12 líneas de texto antes de scrollear)
+			scrollPane.setMaxHeight(250);
+			// --- FIN NUEVO CÓDIGO ---
+
+			// Creamos el panel con Título y Contenido (usando el ScrollPane)
+			TitledPane panelOpcion = new TitledPane(tituloPanel, scrollPane);
+			nuevosPaneles.add(panelOpcion);
+		}
+
+		// Añadimos todos los paneles nuevos al Accordion
+		accordionResultados.getPanes().setAll(nuevosPaneles);
+
+		// Expandimos la primera opción por defecto para que el usuario la vea
+		if (!nuevosPaneles.isEmpty()) {
+			accordionResultados.setExpandedPane(nuevosPaneles.get(0));
+		}
+
+		// --- 3. Lógica del MAPA (es la misma que tenías) ---
 		if (webEngine != null && !listaRecorridos.isEmpty()) {
 			List<Recorrido> opcion = listaRecorridos.get(0);
 
@@ -354,22 +407,39 @@ public class ControladorInterfaz {
 	}
 
 	/**
-	 * Displays a warning message in the results area.
-	 * 
-	 * @param msg The warning message to be shown.
+	 * Displays a warning message in the results Accordion. * @param msg The warning
+	 * message to be shown.
 	 */
 	private void pintarAdvertencia(String msg) {
-		resultadoArea.setText(msg);
-		resultadoArea.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
+		accordionResultados.getPanes().clear(); // Limpia paneles anteriores
+
+		Label labelAdvertencia = new Label(msg);
+		labelAdvertencia.setWrapText(true);
+
+		// Creamos un panel de "Advertencia"
+		TitledPane panelAdvertencia = new TitledPane("Advertencia", labelAdvertencia);
+		panelAdvertencia.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
+
+		accordionResultados.getPanes().add(panelAdvertencia);
+		accordionResultados.setExpandedPane(panelAdvertencia); // Lo mostramos expandido
 	}
 
 	/**
-	 * Displays an error message in the results area.
-	 * 
+	 * Displays an error message in the results Accordion.
+	 ** 
 	 * @param msg The error message to be shown.
 	 */
 	private void pintarError(String msg) {
-		resultadoArea.setText(msg);
-		resultadoArea.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
+		accordionResultados.getPanes().clear(); // Limpia paneles anteriores
+
+		Label labelError = new Label(msg);
+		labelError.setWrapText(true);
+
+		// Creamos un panel de "Error"
+		TitledPane panelError = new TitledPane("Error", labelError);
+		panelError.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
+
+		accordionResultados.getPanes().add(panelError);
+		accordionResultados.setExpandedPane(panelError); // Lo mostramos expandido
 	}
 }
