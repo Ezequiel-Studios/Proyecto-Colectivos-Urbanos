@@ -21,6 +21,7 @@ import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.web.WebEngine;
@@ -79,6 +80,12 @@ public class ControladorInterfaz {
 		// Stops
 		comboOrigen.getItems().setAll(paradasDisponibles);
 		comboDestino.getItems().setAll(paradasDisponibles);
+
+		comboOrigen.setButtonCell(createParadaListCell());
+		comboDestino.setButtonCell(createParadaListCell());
+
+		comboOrigen.setCellFactory(lv -> createParadaListCell());
+		comboDestino.setCellFactory(lv -> createParadaListCell());
 
 		comboOrigen.setOnAction(e -> handleSeleccionParada(comboOrigen.getValue(), "origen"));
 		comboDestino.setOnAction(e -> handleSeleccionParada(comboDestino.getValue(), "destino"));
@@ -196,7 +203,7 @@ public class ControladorInterfaz {
 			protected List<List<Recorrido>> call() throws Exception {
 				LOGGER.info("Task de cálculo iniciado en hilo de fondo...");
 
-				Thread.sleep(2000); //agregado para ver como funciona
+				Thread.sleep(2000); // agregado para ver como funciona
 				return coordinador.calcularRecorrido(origen, destino, dia, hora);
 			}
 		};
@@ -263,11 +270,9 @@ public class ControladorInterfaz {
 
 		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
 			LOGGER.info("No se encontraron resultados disponibles.");
-
 			Label labelInfo = new Label(resources.getString("resultadoNoDisponible"));
 			TitledPane panelInfo = new TitledPane("Información", labelInfo);
 			panelInfo.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
-
 			accordionResultados.getPanes().add(panelInfo);
 			accordionResultados.setExpandedPane(panelInfo);
 			return;
@@ -305,11 +310,9 @@ public class ControladorInterfaz {
 				}
 				sbContenido.append("     ").append(resources.getObject("sale")).append("  ").append(r.getHoraSalida())
 						.append("\n");
-
 				int totalSeg = r.getDuracion();
 				int min = totalSeg / 60;
 				int seg = totalSeg % 60;
-
 				sbContenido.append("     ").append(resources.getString("duracion")).append(" ").append(min).append(" ")
 						.append(resources.getString("minutos"));
 				if (seg != 0) {
@@ -317,21 +320,27 @@ public class ControladorInterfaz {
 				}
 				sbContenido.append("\n\n");
 			}
-
 			Label contenidoLabel = new Label(sbContenido.toString());
 			contenidoLabel.setWrapText(true);
-			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;"); 
-
+			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;");
 			ScrollPane scrollPane = new ScrollPane();
 			scrollPane.setContent(contenidoLabel);
-
 			scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
-
 			scrollPane.setFitToWidth(true);
-
 			scrollPane.setMaxHeight(250);
 
 			TitledPane panelOpcion = new TitledPane(tituloPanel, scrollPane);
+
+			final List<Recorrido> opcionActual = opcion;
+
+			panelOpcion.expandedProperty().addListener((obs, wasExpanded, isNowExpanded) -> {
+				if (isNowExpanded) {
+					LOGGER.info("Usuario expandió Opción {}. Dibujando ruta segmentada...",
+							(nuevosPaneles.indexOf(panelOpcion) + 1));
+					dibujarRutaParaOpcion(opcionActual);
+				}
+			});
+
 			nuevosPaneles.add(panelOpcion);
 		}
 
@@ -340,30 +349,60 @@ public class ControladorInterfaz {
 		if (!nuevosPaneles.isEmpty()) {
 			accordionResultados.setExpandedPane(nuevosPaneles.get(0));
 		}
+	}
 
-		if (webEngine != null && !listaRecorridos.isEmpty()) {
-			List<Recorrido> opcion = listaRecorridos.get(0);
+	private void dibujarRutaParaOpcion(List<Recorrido> opcion) {
+		if (webEngine == null || opcion == null || opcion.isEmpty()) {
+			return;
+		}
 
-			List<Parada> paradasMapa = new ArrayList<>();
-			for (Recorrido r : opcion) {
-				if (paradasMapa.isEmpty() || !paradasMapa.get(paradasMapa.size() - 1).equals(r.getParadas().get(0)))
-					paradasMapa.addAll(r.getParadas());
-				else
-					paradasMapa.addAll(r.getParadas().subList(1, r.getParadas().size()));
-			}
+		StringBuilder jsonBuilder = new StringBuilder("[");
 
-			StringBuilder jsonBuilder = new StringBuilder("[");
-			for (int j = 0; j < paradasMapa.size(); j++) {
-				Parada p = paradasMapa.get(j);
+		for (int i = 0; i < opcion.size(); i++) {
+			Recorrido r = opcion.get(i);
+			jsonBuilder.append("{");
+
+			String tipo = (r.getLinea() == null) ? "caminando" : "bus";
+			jsonBuilder.append("\"tipo\":\"").append(tipo).append("\",");
+
+			jsonBuilder.append("\"paradas\":[");
+			List<Parada> paradasSegmento = r.getParadas();
+			for (int j = 0; j < paradasSegmento.size(); j++) {
+				Parada p = paradasSegmento.get(j);
 				jsonBuilder.append(
 						String.format(Locale.ROOT, "{\"lat\":%f, \"lon\":%f}", p.getLatitud(), p.getLongitud()));
-				if (j < paradasMapa.size() - 1)
+				if (j < paradasSegmento.size() - 1)
 					jsonBuilder.append(",");
 			}
 			jsonBuilder.append("]");
-			String jsDraw = "dibujarRecorrido(" + jsonBuilder.toString() + ");";
-			webEngine.executeScript(jsDraw);
+
+			jsonBuilder.append("}");
+			if (i < opcion.size() - 1)
+				jsonBuilder.append(",");
 		}
+		jsonBuilder.append("]");
+
+		String jsDraw = String.format("dibujarRecorridoSegmentado(%s);", jsonBuilder.toString());
+		webEngine.executeScript(jsDraw);
+	}
+
+	/**
+	 * Crea una celda personalizada para el ComboBox de Paradas. Esta celda usa el
+	 * ResourceBundle para traducir la palabra "Parada".
+	 */
+	private ListCell<Parada> createParadaListCell() {
+		return new ListCell<Parada>() {
+			@Override
+			protected void updateItem(Parada item, boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setText(null);
+				} else {
+					setText(resources.getString("etiquetaParada") + " " + item.getCodigo() + ": "
+							+ item.getDireccion());
+				}
+			}
+		};
 	}
 
 	/**
@@ -428,8 +467,9 @@ public class ControladorInterfaz {
 	}
 
 	/**
-	 * Displays a warning message in the results Accordion. * @param msg The warning
-	 * message to be shown.
+	 * Displays a warning message in the results Accordion.
+	 ** 
+	 * @param msg The warning message to be shown.
 	 */
 	private void pintarAdvertencia(String msg) {
 		accordionResultados.getPanes().clear();
