@@ -1,97 +1,102 @@
 package colectivo.controlador;
 
-import java.io.IOException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javafx.concurrent.Task;
 
 import colectivo.conexion.Factory;
 import colectivo.dao.LineaDAO;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
-import colectivo.interfaz.ControladorInterfaz;
 import colectivo.interfaz.InterfazInicializador;
 import colectivo.logica.Calculo;
-import colectivo.modelo.Linea;
+import colectivo.logica.CiudadLoaderService;
+import colectivo.logica.Recorrido;
+import colectivo.modelo.Ciudad;
 import colectivo.modelo.Parada;
-import colectivo.modelo.Recorrido;
-import colectivo.modelo.Tramo;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Main application coordinator. This class acts as the central coordinator for
+ * the application, implementing the Model-View-Controller design pattern. It is
+ * responsible for initializing the application's Model, delegating tasks and
+ * managing and concerns like Internationalization (i18n).
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class Coordinador {
 
+	/**
+	 * Current locale used for internationalization (i18n) throughout the
+	 * application.
+	 */
 	private static Locale localeActual = Locale.of("es");
+
+	/**
+	 * Base name for the resource bundles containing localized messages for te UI.
+	 */
 	private static final String BUNDLE_BASE_NAME = "colectivo.interfaz.messages";
+
+	/** Reference to the UI initializer, the JavaFX application launcher. */
 	private InterfazInicializador interfazInicializador;
+
+	/**
+	 * Instance of the business logic processor for route and simulation
+	 * calculations.
+	 */
 	private Calculo calculo;
-	private ControladorInterfaz ControladorInterfaz;
-	private List<Parada> paradas;
-	private List<Linea> lineas;
-	private List<Recorrido> recorridos;
-	private Map<String, Tramo> tramos;
+
+	/**
+	 * The core model object representing the entire city's network (stops, lines,
+	 * segments)
+	 */
+	private Ciudad ciudad;
+
+	/** Logger instance for logging events, errors and exceptions. */
 	private static final Logger LOGGER = LogManager.getLogger(Coordinador.class);
 
-	private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
+	/**
+	 * Constructor that initializes the Coordinador and loads application model.
+	 * Loads the complete city structure and initializes the {@code Calculo} with
+	 * this data.
+	 */
 	public Coordinador() {
-		this.calculo = new Calculo();
-
 		try {
-			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
-			TramoDAO tramoDAO = (TramoDAO) Factory.getInstancia("TRAMO");
-			LineaDAO lineaDAO = (LineaDAO) Factory.getInstancia("LINEA");
+			ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
+			TramoDAO tramoDAO = Factory.getInstancia("TRAMO", TramoDAO.class);
+			LineaDAO lineaDAO = Factory.getInstancia("LINEA", LineaDAO.class);
 
-			Map<Integer, Parada> paradasMap = paradaDAO.buscarTodos();
-			this.tramos = tramoDAO.buscarTodos();
-			Map<String, Linea> lineasMap = lineaDAO.buscarTodos();
+			CiudadLoaderService loader = new CiudadLoaderService(paradaDAO, lineaDAO, tramoDAO);
+			this.ciudad = loader.cargarCiudad();
 
-			if (paradasMap.isEmpty() || tramos.isEmpty() || lineasMap.isEmpty()) {
-				LOGGER.fatal("Error crítico: Falló la carga de datos. Una o más colecciones están vacías.");
-				throw new IOException("Fallo en la carga inicial de datos desde DAOs.");
-			}
-			this.paradas = new ArrayList<>(paradasMap.values());
-			this.lineas = new ArrayList<>(lineasMap.values());
+			this.calculo = new Calculo(this.ciudad.getLineas());
 
-			LOGGER.info("Paradas cargadas y convertidas a List<Parada>: {} elementos.", this.paradas.size());
 		} catch (RuntimeException e) {
 			LOGGER.fatal("Error crítico: Falló la inicialización del Modelo (DAO/Factory).", e);
-		} catch (IOException e) {
-			LOGGER.fatal("Error de infraestructura: Los datos críticos no se pudieron cargar o están vacíos.", e);
 		}
 	}
 
+	/**
+	 * Sets the {@code Calculo} service instance.
+	 * 
+	 * @param calculo The calculation service to be used by the coordinator.
+	 */
 	public void setCalculo(Calculo calculo) {
 		this.calculo = calculo;
 	}
 
-	public void setInterfaz(ControladorInterfaz ControladorInterfaz) {
-		this.ControladorInterfaz = ControladorInterfaz;
-	}
-
-	public void setParadas(List<Parada> paradas) {
-		this.paradas = paradas;
-	}
-
-	public void setLineas(List<Linea> lineas) {
-		this.lineas = lineas;
-	}
-
-	public void setRecorridos(List<Recorrido> recorridos) {
-		this.recorridos = recorridos;
-	}
-
-	public void setTramos(Map<String, Tramo> tramos) {
-		this.tramos = tramos;
-	}
-
+	/**
+	 * Sets the reference to the object responsible for initializing the user
+	 * interface.
+	 * 
+	 * @param interfazInicializador The UI initializer instance.
+	 */
 	public void setInterfazInicializador(InterfazInicializador interfazInicializador) {
 		this.interfazInicializador = interfazInicializador;
 	}
@@ -100,17 +105,25 @@ public class Coordinador {
 	 * Calls the method responsible for calculating possible routes between two bus
 	 * stops given the day and time.
 	 * 
-	 * @param origen    the origin bus stop
-	 * @param destino   the destination bus stop
-	 * @param diaSemana the day of the week
-	 * @param hora      the departure time
+	 * @param origen    The origin bus stop
+	 * @param destino   The destination bus stop
+	 * @param diaSemana The day of the week
+	 * @param hora      The departure time
 	 * @return a list of all the possible routes that match the needs of the user,
-	 *         represented as lists.
+	 *         represented as lists of {@code Recorrido} segments.
 	 */
 	public List<List<Recorrido>> calcularRecorrido(Parada origen, Parada destino, int diaSemana, LocalTime hora) {
-		return calculo.calcularRecorrido(origen, destino, diaSemana, hora, tramos);
+		return calculo.calcularRecorrido(origen, destino, diaSemana, hora, this.ciudad.getTramos());
 	}
 
+	/**
+	 * Switches the application's current locale (language). If the new locale is
+	 * different from the current one, it updates the static locale and triggers a
+	 * refresh of the user interface.
+	 * 
+	 * @param codigoIdioma The two-letter ISO 639-1 code for the new language (e.g.,
+	 *                     "en", "es").
+	 */
 	public void cambiarIdioma(String codigoIdioma) {
 		Locale nuevoLocale = Locale.of(codigoIdioma);
 
@@ -125,25 +138,23 @@ public class Coordinador {
 	}
 
 	/**
-	 * Returns the current locale.
+	 * Returns the current application locale.
 	 * 
-	 * @return the current locale.
+	 * @return the current {@code Locale}.
 	 */
 	public static Locale getLocaleActual() {
 		return localeActual;
 	}
 
+	/**
+	 * Retrieves the resource bundle corresponding to the current application
+	 * locale.
+	 * 
+	 * @return The {@code ResourceBundle} containing the messages for the current
+	 *         locale.
+	 */
 	public ResourceBundle getResourceBundle() {
 		return ResourceBundle.getBundle(BUNDLE_BASE_NAME, localeActual);
-	}
-
-	/**
-	 * Returns the list of all bus lines loaded.
-	 * 
-	 * @return a list with all the lines.
-	 */
-	public List<Linea> getLineas() {
-		return lineas;
 	}
 
 	/**
@@ -152,36 +163,23 @@ public class Coordinador {
 	 * @return a list with all the stops.
 	 */
 	public List<Parada> getParadas() {
-		return paradas;
+		return new ArrayList<>(this.ciudad.getParadas().values());
 	}
 
 	/**
-	 * Returns the map with all route segments loaded.
+	 * Returns the main {@code Ciudad} model object.
 	 * 
-	 * @return a map with the route segments.
+	 * @return The main city data model.
 	 */
-	public Map<String, Tramo> getTramos() {
-		return tramos;
+	public Ciudad getCiudad() {
+		return ciudad;
 	}
 
+	/**
+	 * Initiates the graphical user interface (GUI) of the application. This method
+	 * delegates the startup process to the {@code InterfazInicializador}.
+	 */
 	public void iniciarSistema() {
 		InterfazInicializador.lanzar(this);
-	}
-
-	/**
-	 * Recibe una tarea (Task) desde el controlador de la interfaz y la pone en la
-	 * cola para que la ejecute el ExecutorService.
-	 */
-	public void ejecutarCalculo(Task<List<List<Recorrido>>> tarea) {
-		executorService.submit(tarea);
-	}
-
-	/**
-	 * Apaga el pool de hilos de forma ordenada. Se debe llamar cuando la aplicación
-	 * se cierra.
-	 */
-	public void apagarServicioDeHilos() {
-		LOGGER.info("Apagando el ExecutorService...");
-		executorService.shutdown();
 	}
 }

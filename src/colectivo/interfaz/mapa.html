@@ -4,12 +4,15 @@
     <title>Mapa de Colectivos (OpenLayers)</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
     <style>
-		html, body {
-			height: 100%;
-			margin: 0;
-			padding: 0;
-		}
-        #map { height: 100%; width: 100%; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
         .ol-popup {
             position: absolute;
             background-color: white;
@@ -27,22 +30,22 @@
 </head>
 <body>
     <div id="map"></div>
-    <div id="popup" class="ol-popup"><div id="popup-content"></div></div>
+    <div id="popup" class="ol-popup">
+        <div id="popup-content"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
     <script>
-		var centerLat = -35.6586;
-		var centerLon = -63.7578;
+        var centerLat = -35.6586;
+        var centerLon = -63.7578;
         var initialCoords = ol.proj.fromLonLat([centerLon, centerLat]);
 
-		
         var vectorSource = new ol.source.Vector();
-        var vectorLayer = new ol.layer.Vector({
-            source: vectorSource
-        });
-        
+        var vectorLayer = new ol.layer.Vector({ source: vectorSource });
+
         var popupElement = document.getElementById('popup');
         var popupContent = document.getElementById('popup-content');
+
         var errorPopup = new ol.Overlay({
             element: popupElement,
             positioning: 'bottom-center',
@@ -63,8 +66,8 @@
             })
         });
 
-        var featuresMap = {}; 
-        var currentRouteFeatures = []; 
+        var featuresMap = {};
+        var currentRouteFeatures = [];
 
         function createMarkerStyle(color, direccion) {
             return new ol.style.Style({
@@ -82,7 +85,7 @@
                 })
             });
         }
-        
+
         var busRouteStyle1 = new ol.style.Style({
             stroke: new ol.style.Stroke({
                 color: 'rgba(0, 128, 0, 0.8)',
@@ -117,31 +120,37 @@
             if (featuresMap[tipo]) {
                 vectorSource.removeFeature(featuresMap[tipo]);
             }
-            var color = (tipo === 'origen') ? 'rgba(255, 0, 0, 1)' : 'rgba(0, 0, 255, 1)';
+
+            var color = (tipo === 'origen')
+                ? 'rgba(255, 0, 0, 1)'
+                : 'rgba(0, 0, 255, 1)';
+
             var style = createMarkerStyle(color, direccion);
             var coords = ol.proj.fromLonLat([lon, lat]);
+
             var feature = new ol.Feature({
                 geometry: new ol.geom.Point(coords)
             });
+
             feature.setStyle(style);
             vectorSource.addFeature(feature);
             featuresMap[tipo] = feature;
+
             map.getView().animate({ center: coords, duration: 500, zoom: 14 });
-        }
+        };
 
         window.dibujarRecorridoSegmentado = async function(segmentosJson) {
-            window.limpiarRecorrido(); 
+            window.limpiarRecorrido();
 
             var extent = ol.extent.createEmpty();
-            
-            var busCounter = 0; 
+            var busCounter = 0;
 
             for (const segmento of segmentosJson) {
                 var paradas = segmento.paradas;
                 var tipo = segmento.tipo;
 
-                if (paradas.length < 2) continue; 
-				
+                if (paradas.length < 2) continue;
+
                 var estiloSegmento;
                 var perfil;
 
@@ -149,11 +158,9 @@
                     estiloSegmento = walkingRouteStyle;
                     perfil = 'foot';
                 } else {
-                    if (busCounter === 0) {
-                        estiloSegmento = busRouteStyle1;
-                    } else {
-                        estiloSegmento = busRouteStyle2;
-                    }
+                    estiloSegmento = (busCounter === 0)
+                        ? busRouteStyle1
+                        : busRouteStyle2;
                     perfil = 'driving';
                     busCounter++;
                 }
@@ -162,54 +169,64 @@
                 var osrmUrl = `https://router.project-osrm.org/route/v1/${perfil}/${coordsString}?overview=full&geometries=geojson`;
 
                 try {
-                    console.log(`Llamando OSRM (${perfil}) para ${paradas.length} paradas.`);
                     var response = await fetch(osrmUrl);
                     if (!response.ok) throw new Error(`OSRM error ${response.status}`);
+
                     var data = await response.json();
                     if (data.code !== 'Ok') throw new Error('OSRM route not found');
 
                     var routeGeometry = data.routes[0].geometry;
+
                     var routeFeature = new ol.Feature({
-                        geometry: new ol.geom.LineString(routeGeometry.coordinates).transform('EPSG:4326', 'EPSG:3857')
+                        geometry: new ol.geom.LineString(routeGeometry.coordinates)
+                            .transform('EPSG:4326', 'EPSG:3857')
                     });
-                    
+
                     routeFeature.setStyle(estiloSegmento);
 
                     vectorSource.addFeature(routeFeature);
                     currentRouteFeatures.push(routeFeature);
-                    ol.extent.extend(extent, routeFeature.getGeometry().getExtent());
 
+                    ol.extent.extend(extent, routeFeature.getGeometry().getExtent());
                 } catch (error) {
-                    console.warn(`OSRM falló para segmento ${tipo}: ${error.message}. Dibujando línea recta.`);
-                    var fallbackFeature = dibujarSegmentoDeRespaldo(paradas);
-                    ol.extent.extend(extent, fallbackFeature.getGeometry().getExtent());
+                    if (segmento.paradas && segmento.paradas.length > 0) {
+                        var fallbackFeature = dibujarSegmentoDeRespaldo(segmento.paradas);
+                        ol.extent.extend(extent, fallbackFeature.getGeometry().getExtent());
+                    }
                 }
             }
 
             if (!ol.extent.isEmpty(extent)) {
-                map.getView().fit(extent, { padding: [40, 40, 40, 40], duration: 1000 });
+                map.getView().fit(extent, {
+                    padding: [40, 40, 40, 40],
+                    duration: 1000
+                });
             }
-        }
-        
+        };
+
         function dibujarSegmentoDeRespaldo(paradasSegmento) {
-             var puntosProyectados = paradasSegmento.map(c => ol.proj.fromLonLat([c.lon, c.lat]));
-             var lineFeature = new ol.Feature({
-                geometry: new ol.geom.LineString(puntosProyectados)
-             });
-             lineFeature.setStyle(fallbackRouteStyle);
-             
-             vectorSource.addFeature(lineFeature);
-             currentRouteFeatures.push(lineFeature);
-             return lineFeature;
+            var puntos = paradasSegmento.map(c =>
+                ol.proj.fromLonLat([c.lon, c.lat])
+            );
+
+            var lineFeature = new ol.Feature({
+                geometry: new ol.geom.LineString(puntos)
+            });
+
+            lineFeature.setStyle(fallbackRouteStyle);
+            vectorSource.addFeature(lineFeature);
+            currentRouteFeatures.push(lineFeature);
+
+            return lineFeature;
         }
 
         window.limpiarRecorrido = function() {
             for (var i = 0; i < currentRouteFeatures.length; i++) {
                 vectorSource.removeFeature(currentRouteFeatures[i]);
             }
-            currentRouteFeatures = []; 
+            currentRouteFeatures = [];
             errorPopup.setPosition(undefined);
-        }
+        };
     </script>
 </body>
 </html>

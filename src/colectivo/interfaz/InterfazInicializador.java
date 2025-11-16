@@ -16,22 +16,56 @@ import javafx.stage.Stage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * JavaFX application initializer and lifecycle manager. This class extends
+ * {@code javafx.application.Application}, serving as the official entry point
+ * for the JavaFX GUI framework.
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class InterfazInicializador extends Application {
 
+	/** Static reference to the application's central controller. */
 	private static Coordinador coordinador;
+
+	/** Static reference to the running instance of the JavaFX Application class. */
 	private static InterfazInicializador instance;
+
+	/** The primary window container provided by the JavaFX runtime. */
 	private Stage primaryStage;
+
+	/** Logger instance for logging events, errors and exceptions. */
 	private static final Logger LOGGER = LogManager.getLogger(InterfazInicializador.class);
 
+	/**
+	 * Static entry method to launch the JavaFX runtime. This method links the main
+	 * application object graph (the {@code Coordinador}) to the JavaFX framework.
+	 * 
+	 * @param coord The initialized central coordinator instance.
+	 */
 	public static void lanzar(Coordinador coord) {
 		coordinador = coord;
 		launch();
 	}
 
+	/**
+	 * Returns the single running instance of this class. Useful for allowing other
+	 * parts of the application (e.g., the Coordinator) to access the JavaFX
+	 * lifecycle methods.
+	 * 
+	 * @return The singleton instance of {@code InterfazInicializador}.
+	 */
 	public static InterfazInicializador getInstance() {
 		return instance;
 	}
 
+	/**
+	 * Safely reloads the entire user interface on the JavaFX Application Thread.
+	 * Used primarily for dynamically applying language changes (i18n) by reloading
+	 * the FXML with a new {@code ResourceBundle}.
+	 */
 	public void refrescarInterfaz() {
 		Platform.runLater(() -> {
 			try {
@@ -42,6 +76,11 @@ public class InterfazInicializador extends Application {
 		});
 	}
 
+	/**
+	 * Core method for loading the FXML file and initializing the view.
+	 * 
+	 * @throws Exception If FXML loading or dependency injection fails.
+	 */
 	public void cargarInterfaz() throws Exception {
 		try {
 			Locale locale = Coordinador.getLocaleActual();
@@ -51,7 +90,7 @@ public class InterfazInicializador extends Application {
 					resources);
 			List<Parada> paradasDisponibles = coordinador.getParadas();
 			Parent root = loader.load();
-			
+
 			Scene scene = primaryStage.getScene();
 			if (scene == null) {
 				scene = new Scene(root, 1200, 800);
@@ -59,12 +98,12 @@ public class InterfazInicializador extends Application {
 			} else {
 				scene.setRoot(root);
 			}
-			
+
 			scene.getStylesheets().add(getClass().getResource("/colectivo/interfaz/estilos.css").toExternalForm());
 
 			ControladorInterfaz controller = loader.getController();
 			controller.init(coordinador, paradasDisponibles, resources, primaryStage);
-			
+
 			primaryStage.setMaximized(true);
 			primaryStage.show();
 
@@ -75,8 +114,10 @@ public class InterfazInicializador extends Application {
 
 	/**
 	 * Starts the JavaFX application and initializes the necessary components.
+	 * Called automatically after {@code launch()}. It sets up the primary stage and
+	 * delegates control to the coordinator.
 	 * 
-	 * @param primaryStage the main window of the JavaFX application.
+	 * @param primaryStage The main window of the JavaFX application.
 	 */
 	@Override
 	public void start(Stage stage) throws Exception {
@@ -87,17 +128,12 @@ public class InterfazInicializador extends Application {
 	}
 
 	/**
-	 * Este método es llamado automáticamente por JavaFX cuando se cierra la ventana
-	 * principal (al apretar la 'X').
+	 * Called automatically by JavaFX when the main window is closed. Used to
+	 * perform final cleanup tasks before the application exits.
 	 */
 	@Override
 	public void stop() throws Exception {
 		LOGGER.info("Aplicación cerrándose. Apagando servicios...");
-
-		if (coordinador != null) {
-			coordinador.apagarServicioDeHilos();
-		}
-
 		super.stop();
 	}
 }

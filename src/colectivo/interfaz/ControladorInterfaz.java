@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import colectivo.controlador.Coordinador;
+import colectivo.logica.Recorrido;
 import colectivo.modelo.Parada;
-import colectivo.modelo.Recorrido;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -20,20 +21,27 @@ import javafx.scene.control.Accordion;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TitledPane;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
-import javafx.util.StringConverter;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * JavaFX view controller. This class acts as the dedicated controller for the
+ * main user interface FXML file. It manages all user interactions, handles
+ * input validation, orchestrates UI updates, and delegates business logic
+ * requests to the {@code Coordinador}.
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class ControladorInterfaz {
+
+	/** FXML UI components (injected by JavaFX. */
 	@FXML
 	private ComboBox<Parada> comboOrigen;
 	@FXML
@@ -61,36 +69,67 @@ public class ControladorInterfaz {
 	@FXML
 	private ImageView animacionCarga;
 
+	/**
+	 * Reference to the application's central controller for business logic
+	 * delegation.
+	 */
 	private Coordinador coordinador;
+
+	/** Resource bundle for localized messages (i18n). */
 	private ResourceBundle resources;
-	private Stage stage;
-	private final Map<String, Integer> diasMap = new HashMap<>();
-	private final Map<String, String> idiomasDisponibles = new HashMap<>();
-	private static final Logger LOGGER = LogManager.getLogger(ControladorInterfaz.class);
 
 	/**
-	 * Initializes the controller with available stops and sets up ComboBoxes and
-	 * default selections.
+	 * Utility class for UI specific tasks (creating cells, panels, converters,
+	 * etc.).
+	 */
+	private UtilidadInterfaz utilidad;
+
+	/**
+	 * Internal map to quickly convert localized day names (String) to their numeric
+	 * code (Integer).
+	 */
+	private final Map<String, Integer> diasMap = new HashMap<>();
+
+	/**
+	 * Map to convert localized language names to their ISO code for language
+	 * switching.
+	 */
+	private final Map<String, String> idiomasDisponibles = new HashMap<>();
+
+	/** Logger instance for logging events, errors and exceptions. */
+	private static final Logger LOGGER = LogManager.getLogger(ControladorInterfaz.class);
+
+	/** Service for executing heavy tasks asynchronously off the UI thread. */
+	private final AsyncService asyncService = new AsyncService();
+
+	/**
+	 * Initializes the controller with available stops and sets up UI components.
+	 * 
+	 * @param coordinador        The central coordinator of the application.
+	 * @param paradasDisponibles The list of all available stops to populate the
+	 *                           combo boxes.
+	 * @param resources          The resource bundle for initial localization.
+	 * @param stage              The primary stage of the JavaFX application.
 	 */
 	public void init(Coordinador coordinador, List<Parada> paradasDisponibles, ResourceBundle resources, Stage stage) {
 		this.coordinador = coordinador;
 		this.resources = resources;
-		this.stage = stage;
+		this.utilidad = new UtilidadInterfaz(resources);
 
 		// Stops
 		comboOrigen.getItems().setAll(paradasDisponibles);
 		comboDestino.getItems().setAll(paradasDisponibles);
 
-		comboOrigen.setButtonCell(createParadaListCell());
-		comboDestino.setButtonCell(createParadaListCell());
+		comboOrigen.setButtonCell(utilidad.createParadaListCell());
+		comboDestino.setButtonCell(utilidad.createParadaListCell());
 
-		comboOrigen.setCellFactory(lv -> createParadaListCell());
-		comboDestino.setCellFactory(lv -> createParadaListCell());
+		comboOrigen.setCellFactory(lv -> utilidad.createParadaListCell());
+		comboDestino.setCellFactory(lv -> utilidad.createParadaListCell());
 
 		comboOrigen.setOnAction(e -> handleSeleccionParada(comboOrigen.getValue(), "origen"));
 		comboDestino.setOnAction(e -> handleSeleccionParada(comboDestino.getValue(), "destino"));
 
-		// Days of the week
+		// Days of the week (i18n setup)
 		String clavesDias[] = { "diaLunes", "diaMartes", "diaMiercoles", "diaJueves", "diaViernes", "diaSabado",
 				"diaDomingo" };
 		List<String> diasTraducidos = new ArrayList<>();
@@ -118,20 +157,17 @@ public class ControladorInterfaz {
 			}
 		});
 
-		// Hour and minute (two digits)
-		comboHora.getItems().setAll(rango(0, 23));
-		comboMinuto.getItems().setAll(rango(0, 59));
-		comboHora.setConverter(dosDigitos());
-		comboMinuto.setConverter(dosDigitos());
+		// Hour and minute (two-digit formatting)
+		comboHora.getItems().setAll(utilidad.rango(0, 23));
+		comboMinuto.getItems().setAll(utilidad.rango(0, 59));
+		comboHora.setConverter(utilidad.dosDigitos());
+		comboMinuto.setConverter(utilidad.dosDigitos());
 
 		// Default selection
 		comboHora.getSelectionModel().select(Integer.valueOf(10));
 		comboMinuto.getSelectionModel().select(Integer.valueOf(0));
 
-		// Languages
-		// Languages (para el MenuButton)
-		// Nota: El Map 'idiomasDisponibles' ya debe estar definido como campo de la
-		// clase.
+		// Languages (i18n menu setup)
 		String nombreEs = resources.getString("nombreIdiomaEs");
 		String nombreEn = resources.getString("nombreIdiomaEn");
 		String nombrePt = resources.getString("nombreIdiomaPt");
@@ -158,10 +194,16 @@ public class ControladorInterfaz {
 
 		menuIdioma.getItems().setAll(itemEs, itemEn, itemPt, itemFr);
 
-		// map
+		// Map (WebView setup)
 		this.webEngine = webViewMapa.getEngine();
 		String mapaHtmlUrl = getClass().getResource("mapa.html").toExternalForm();
 		webEngine.load(mapaHtmlUrl);
+
+		// Shutdown hook for Async service
+		stage.setOnCloseRequest(event -> {
+			LOGGER.info("Ventana cerrada detectada. Apagando AsyncService...");
+			asyncService.shutdown();
+		});
 	}
 
 	/**
@@ -177,19 +219,23 @@ public class ControladorInterfaz {
 		Integer mm = comboMinuto.getValue();
 
 		if (origen == null || destino == null || diaTxt == null || hh == null || mm == null) {
-			pintarAdvertencia(resources.getString("advertenciaCompletaCampos"));
+			String tipo = resources.getString("advertencia");
+			String mensajeEspecifico = resources.getString("advertenciaCompletaCampos");
+
+			mostrarMensajeAcordion(tipo, mensajeEspecifico);
 			return;
 		}
 		if (origen.equals(destino)) {
-			pintarAdvertencia(resources.getString("advertenciaOrigenDestinoIguales"));
+			String tipo = resources.getString("advertencia");
+			String mensajeEspecifico = resources.getString("advertenciaOrigenDestinoIguales");
+			mostrarMensajeAcordion(tipo, mensajeEspecifico);
 			return;
 		}
 
 		String claveDiaLimpia = diaTxt.trim().toLowerCase();
-
 		int diaInicial = diasMap.get(claveDiaLimpia);
-
 		String claveDomingo = resources.getString("diaDomingo").trim().toLowerCase();
+
 		if (checkFeriado.isSelected() && !claveDiaLimpia.equals(claveDomingo)) {
 			diaInicial = 7;
 			LOGGER.info("Día marcado como feriado. Usando código de día: {}", diaInicial);
@@ -198,44 +244,39 @@ public class ControladorInterfaz {
 		final int dia = diaInicial;
 		final LocalTime hora = LocalTime.of(hh, mm);
 
-		Task<List<List<Recorrido>>> task = new Task<>() {
-			@Override
-			protected List<List<Recorrido>> call() throws Exception {
-				LOGGER.info("Task de cálculo iniciado en hilo de fondo...");
-
-				Thread.sleep(2000); // agregado para ver como funciona
-				return coordinador.calcularRecorrido(origen, destino, dia, hora);
-			}
-		};
-
 		btnCalcular.setDisable(true);
 		animacionCarga.setVisible(true);
 		accordionResultados.getPanes().clear();
 
-		task.setOnSucceeded(event -> {
-			javafx.application.Platform.runLater(() -> {
-				animacionCarga.setVisible(false);
-				mostrarResultados(task.getValue());
-				btnCalcular.setDisable(false);
-			});
-		});
+		Supplier<List<List<Recorrido>>> tareaDeFondo = () -> {
+			try {
+				Thread.sleep(2000); // solo para prueba, pausa artificial
+				return coordinador.calcularRecorrido(origen, destino, dia, hora);
 
-		task.setOnFailed(event -> {
-			javafx.application.Platform.runLater(() -> {
-				animacionCarga.setVisible(false);
-				Throwable ex = task.getException();
-				LOGGER.error("Task de cálculo falló.", ex);
-				pintarError("Error: " + ex.getMessage());
-				btnCalcular.setDisable(false);
-			});
-		});
+			} catch (InterruptedException e) {
+				LOGGER.warn("El hilo de cálculo fue interrumpido.");
+				throw new RuntimeException("Cálculo interrumpido", e);
+			}
+		};
 
-		coordinador.ejecutarCalculo(task);
+		Consumer<List<List<Recorrido>>> enExito = (resultados) -> {
+			animacionCarga.setVisible(false);
+			mostrarResultados(resultados);
+			btnCalcular.setDisable(false);
+		};
+
+		Consumer<Exception> enFallo = (ex) -> {
+			mostrarMensajeAcordion(resources.getString("error"), resources.getString("errorCalculo"));
+			btnCalcular.setDisable(false);
+		};
+
+		asyncService.ejecutarAsync(tareaDeFondo, enExito, enFallo);
 	}
 
 	/**
-	 * Se llama cuando el usuario presiona "Limpiar". Resetea los campos de entrada
-	 * y los resultados.
+	 * Handles the action when the "Limpiar" button is pressed. Resets all input
+	 * fields to default values, clears the results pane, and clears the route drawn
+	 * on the map.
 	 */
 	@FXML
 	private void onLimpiar() {
@@ -257,10 +298,9 @@ public class ControladorInterfaz {
 	}
 
 	/**
-	 * Displays the list of available routes in the results area.
-	 */
-	/**
 	 * Displays the list of available routes in the results Accordion.
+	 * 
+	 * @param listaRecorridos The list of route options returned by the coordinator.
 	 */
 	private void mostrarResultados(List<List<Recorrido>> listaRecorridos) {
 		accordionResultados.getPanes().clear();
@@ -270,9 +310,12 @@ public class ControladorInterfaz {
 
 		if (listaRecorridos == null || listaRecorridos.isEmpty()) {
 			LOGGER.info("No se encontraron resultados disponibles.");
-			Label labelInfo = new Label(resources.getString("resultadoNoDisponible"));
-			TitledPane panelInfo = new TitledPane("Información", labelInfo);
-			panelInfo.setStyle("-fx-control-inner-background: #d1ecf1; -fx-text-fill: #0c5460;");
+
+			String mensaje = resources.getString("resultadoNoDisponible");
+			String tipo = resources.getString("info");
+
+			TitledPane panelInfo = utilidad.crearPanelMensaje(tipo, mensaje, resources);
+
 			accordionResultados.getPanes().add(panelInfo);
 			accordionResultados.setExpandedPane(panelInfo);
 			return;
@@ -282,68 +325,9 @@ public class ControladorInterfaz {
 		int i = 1;
 		for (var opcion : listaRecorridos) {
 
-			String tituloPanel = resources.getString("opcion") + " " + i++;
-			if (!opcion.isEmpty()) {
-				Recorrido primerTramo = opcion.get(0);
-				if (primerTramo.getLinea() != null) {
-					tituloPanel += ": (" + resources.getString("linea") + " " + primerTramo.getLinea().getNombre()
-							+ ")";
-				} else {
-					tituloPanel += ": (" + resources.getString("tramoCaminando") + ")";
-				}
-			}
-
-			StringBuilder sbContenido = new StringBuilder();
-			for (var r : opcion) {
-				if (r.getLinea() != null) {
-					sbContenido.append(resources.getString("linea")).append(" ").append(r.getLinea().getNombre())
-							.append(" (").append(r.getLinea().getCodigo()).append(")\n");
-				} else {
-					sbContenido.append(resources.getString("tramoCaminando")).append("\n");
-				}
-				var ps = r.getParadas();
-				if (!ps.isEmpty()) {
-					sbContenido.append("     ").append(resources.getString("desde")).append(" ")
-							.append(ps.get(0).getDireccion()).append("\n");
-					sbContenido.append("     ").append(resources.getString("hasta")).append(" ")
-							.append(ps.get(ps.size() - 1).getDireccion()).append("\n");
-				}
-				sbContenido.append("     ").append(resources.getObject("sale")).append("  ").append(r.getHoraSalida())
-						.append("\n");
-				int totalSeg = r.getDuracion();
-				int min = totalSeg / 60;
-				int seg = totalSeg % 60;
-				sbContenido.append("     ").append(resources.getString("duracion")).append(" ").append(min).append(" ")
-						.append(resources.getString("minutos"));
-				if (seg != 0) {
-					sbContenido.append(" ").append(seg).append(" ").append(resources.getString("segundos"));
-				}
-				sbContenido.append("\n\n");
-			}
-			Label contenidoLabel = new Label(sbContenido.toString());
-			contenidoLabel.setWrapText(true);
-			contenidoLabel.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12; -fx-padding: 5;");
-			ScrollPane scrollPane = new ScrollPane();
-			scrollPane.setContent(contenidoLabel);
-			scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
-			scrollPane.setFitToWidth(true);
-			scrollPane.setMaxHeight(250);
-
-			TitledPane panelOpcion = new TitledPane(tituloPanel, scrollPane);
-
-			final List<Recorrido> opcionActual = opcion;
-
-			panelOpcion.expandedProperty().addListener((obs, wasExpanded, isNowExpanded) -> {
-				if (isNowExpanded) {
-					LOGGER.info("Usuario expandió Opción {}. Dibujando ruta segmentada...",
-							(nuevosPaneles.indexOf(panelOpcion) + 1));
-					dibujarRutaParaOpcion(opcionActual);
-				}
-			});
-
+			TitledPane panelOpcion = utilidad.crearPanelRecorrido(i++, opcion, this::dibujarRutaParaOpcion);
 			nuevosPaneles.add(panelOpcion);
 		}
-
 		accordionResultados.getPanes().setAll(nuevosPaneles);
 
 		if (!nuevosPaneles.isEmpty()) {
@@ -351,65 +335,29 @@ public class ControladorInterfaz {
 		}
 	}
 
+	/**
+	 * Draws the geographical route of a chosen option on the embedded map
+	 * (WebView). Generates a JSON string representing the route segments.
+	 * 
+	 * @param opcion The list of {@code Recorrido} objects representing the selected
+	 *               route.
+	 */
 	private void dibujarRutaParaOpcion(List<Recorrido> opcion) {
-		if (webEngine == null || opcion == null || opcion.isEmpty()) {
+		if (webEngine == null || opcion == null || opcion.isEmpty())
 			return;
-		}
 
-		StringBuilder jsonBuilder = new StringBuilder("[");
+		String jsonRuta = utilidad.generarJsonRuta(opcion);
 
-		for (int i = 0; i < opcion.size(); i++) {
-			Recorrido r = opcion.get(i);
-			jsonBuilder.append("{");
-
-			String tipo = (r.getLinea() == null) ? "caminando" : "bus";
-			jsonBuilder.append("\"tipo\":\"").append(tipo).append("\",");
-
-			jsonBuilder.append("\"paradas\":[");
-			List<Parada> paradasSegmento = r.getParadas();
-			for (int j = 0; j < paradasSegmento.size(); j++) {
-				Parada p = paradasSegmento.get(j);
-				jsonBuilder.append(
-						String.format(Locale.ROOT, "{\"lat\":%f, \"lon\":%f}", p.getLatitud(), p.getLongitud()));
-				if (j < paradasSegmento.size() - 1)
-					jsonBuilder.append(",");
-			}
-			jsonBuilder.append("]");
-
-			jsonBuilder.append("}");
-			if (i < opcion.size() - 1)
-				jsonBuilder.append(",");
-		}
-		jsonBuilder.append("]");
-
-		String jsDraw = String.format("dibujarRecorridoSegmentado(%s);", jsonBuilder.toString());
+		String jsDraw = String.format("dibujarRecorridoSegmentado(%s);", jsonRuta);
 		webEngine.executeScript(jsDraw);
 	}
 
 	/**
-	 * Crea una celda personalizada para el ComboBox de Paradas. Esta celda usa el
-	 * ResourceBundle para traducir la palabra "Parada".
-	 */
-	private ListCell<Parada> createParadaListCell() {
-		return new ListCell<Parada>() {
-			@Override
-			protected void updateItem(Parada item, boolean empty) {
-				super.updateItem(item, empty);
-				if (empty || item == null) {
-					setText(null);
-				} else {
-					setText(resources.getString("etiquetaParada") + " " + item.getCodigo() + ": "
-							+ item.getDireccion());
-				}
-			}
-		};
-	}
-
-	/**
-	 * Llama al coordinador para cambiar el idioma, solo si el idioma seleccionado
-	 * es diferente al actual.
+	 * Calls the coordinator to change the application language, but only if the
+	 * selected language is different from the current one.
 	 * 
-	 * @param nombreIdiomaElige El nombre (String) del idioma elegido.
+	 * @param nombreIdiomaElegido The localized name (String) of the chosen
+	 *                            language.
 	 */
 	private void cambiarIdiomaSiEsNecesario(String nombreIdiomaElegido) {
 		String codigoIdioma = idiomasDisponibles.get(nombreIdiomaElegido);
@@ -420,7 +368,13 @@ public class ControladorInterfaz {
 		}
 	}
 
-	/***/
+	/**
+	 * Handles the selection of a stop in the combo boxes (Origin/Destination). It
+	 * executes a JavaScript call to mark the selected stop's location on the map.
+	 * 
+	 * @param parada The selected {@code Parada} object.
+	 * @param tipo   The type of stop ("origen" or "destino").
+	 */
 	public void handleSeleccionParada(Parada parada, String tipo) {
 		if (parada != null && webEngine != null) {
 			String jsCall = String.format(Locale.ROOT, "marcarParada(%f, %f, '%s', '%s');", parada.getLatitud(),
@@ -431,74 +385,18 @@ public class ControladorInterfaz {
 	}
 
 	/**
-	 * Generates a list of integers within a given range. Used to populate
-	 * ComboBoxes for hours and minutes.
+	 * Clears the results area and displays a specific warning or error message in a
+	 * single {@code TitledPane}.
 	 * 
-	 * @param desde Starting integer value.
-	 * @param hasta Ending integer value.
-	 * @return a list containing all integers in the specified range.
+	 * @param tipo The type of message (e.g., "Advertencia", "Error", "Info"),
+	 *             localized.
+	 * @param msg  The specific content of the message.
 	 */
-	private List<Integer> rango(int desde, int hasta) {
-		List<Integer> l = new ArrayList<>();
-		for (int i = desde; i <= hasta; i++)
-			l.add(i);
-		return l;
-	}
-
-	/**
-	 * Used for displaying hours and minutes consistently.
-	 * 
-	 * @return a StringConverter for formatting integer values with two digits.
-	 */
-	private StringConverter<Integer> dosDigitos() {
-		return new StringConverter<Integer>() {
-			@Override
-			public String toString(Integer value) {
-				if (value == null)
-					return "";
-				return String.format("%02d", value);
-			}
-
-			@Override
-			public Integer fromString(String s) {
-				return (s == null || s.isEmpty()) ? null : Integer.valueOf(s);
-			}
-		};
-	}
-
-	/**
-	 * Displays a warning message in the results Accordion.
-	 ** 
-	 * @param msg The warning message to be shown.
-	 */
-	private void pintarAdvertencia(String msg) {
+	private void mostrarMensajeAcordion(String tipo, String msg) {
 		accordionResultados.getPanes().clear();
 
-		Label labelAdvertencia = new Label(msg);
-		labelAdvertencia.setWrapText(true);
-
-		TitledPane panelAdvertencia = new TitledPane("Advertencia", labelAdvertencia);
-		panelAdvertencia.setStyle("-fx-control-inner-background: #fff3cd; -fx-text-fill: #856404;");
-
-		accordionResultados.getPanes().add(panelAdvertencia);
-		accordionResultados.setExpandedPane(panelAdvertencia);
-	}
-
-	/**
-	 * Displays an error message in the results Accordion.
-	 ** 
-	 * @param msg The error message to be shown.
-	 */
-	private void pintarError(String msg) {
-		accordionResultados.getPanes().clear();
-
-		Label labelError = new Label(msg);
-		labelError.setWrapText(true);
-
-		TitledPane panelError = new TitledPane("Error", labelError);
-		panelError.setStyle("-fx-control-inner-background: #f8d7da; -fx-text-fill: #721c24;");
-
-		accordionResultados.getPanes().add(panelError);
-		accordionResultados.setExpandedPane(panelError);
+		TitledPane panelMensaje = utilidad.crearPanelMensaje(tipo, msg, resources);
+		accordionResultados.getPanes().add(panelMensaje);
+		accordionResultados.setExpandedPane(panelMensaje);
 	}
 }

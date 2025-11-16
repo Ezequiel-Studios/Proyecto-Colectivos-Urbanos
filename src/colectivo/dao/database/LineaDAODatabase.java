@@ -19,32 +19,69 @@ import colectivo.dao.ParadaDAO;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
 
+/**
+ * Concrete implementation of {@code LineaDAO} using a relational database. This
+ * class implements the contract defined by {@code LineaDAO} to handle
+ * persistence operations for {@code Linea} objects.
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class LineaDAODatabase implements LineaDAO {
 
+	/**
+	 * Map containing all available stops, loaded before lines to facilitate object
+	 * mapping.
+	 */
 	private final Map<Integer, Parada> paradasDisponibles;
+
+	/** Logger instance for logging events, errors and exceptions. */
 	private static final Logger LOGGER = LogManager.getLogger(LineaDAODatabase.class);
 
+	/**
+	 * Constructor that initializes the necessary dependencies. Calls
+	 * {@code cargarParadas()} to obtain all available stops from the database
+	 * through the {@code ParadaDAO}.
+	 */
 	public LineaDAODatabase() {
 		this.paradasDisponibles = cargarParadas();
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void insertar(Linea linea) {
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void actualizar(Linea linea) {
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void borrar(Linea linea) {
 	}
 
+	/**
+	 * Retrieves all bus lines and their related entities (stops and frequencies) by
+	 * loading them from the database.
+	 * 
+	 * @return A {@code Map} of all loaded {@code Linea} objects, or an empty map if
+	 *         an error occurs or no data is found.
+	 */
 	@Override
 	public Map<String, Linea> buscarTodos() {
 		return cargarDesdeBD();
 	}
 
+	/**
+	 * Reads data drom the database tables to fully populate the {@code Linea}
+	 * objects.
+	 * 
+	 * @return A map containing {@code Linea} objects.
+	 * @throws SQLException if a database access error occurs.
+	 */
 	private Map<String, Linea> cargarDesdeBD() {
 		Map<String, Linea> lineas = new LinkedHashMap<>();
 		Connection conn = null;
@@ -111,9 +148,15 @@ public class LineaDAODatabase implements LineaDAO {
 		return lineas;
 	}
 
+	/**
+	 * Loads all available stops by requesting the {@code ParadaDAO} implementation
+	 * from the {@code Factory}.
+	 * 
+	 * @return A map of all stops keyed by their ID, or an empty map on failure.
+	 */
 	private Map<Integer, Parada> cargarParadas() {
 		try {
-			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
+			ParadaDAO paradaDAO = Factory.getInstancia("PARADA", ParadaDAO.class);
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
 			LOGGER.error("Error al obtener ParadaDAO desde la Factory en LineaDAO: ", e);

@@ -15,11 +15,33 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.InputStream;
 
+/**
+ * Concrete implementation of {@code ParadaDAO} using sequential files. This
+ * class implements the {@code ParadaDAO} contract, handling persistence
+ * operations by reading and processing data from structured text files (as an
+ * alternative to a relational database).
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class ParadaDAOArchivo implements ParadaDAO {
 
+	/** Path to the sequential file containing the bus stop data. */
 	private String rutaArchivo;
+
+	/**
+	 * Cache map where loaded {@code Parada} objects are stored, keyed by stop ID.
+	 */
 	private Map<Integer, Parada> paradasMap;
+
+	/**
+	 * Flag indicating if the cache needs to be refreshed by reading the files
+	 * again.
+	 */
 	private boolean actualizar;
+
+	/** Logger instance for logging events, errors and exceptions. */
 	private static final Logger LOGGER = LogManager.getLogger(ParadaDAOArchivo.class);
 
 	/**
@@ -51,24 +73,29 @@ public class ParadaDAOArchivo implements ParadaDAO {
 		this.actualizar = true;
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void insertar(Parada parada) {
 
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void actualizar(Parada parada) {
 
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void borrar(Parada parada) {
 
 	}
 
 	/**
-	 * Returns all bus stops currently loaded. If the data needs to refreshed, reads
-	 * them from the file first.
+	 * Returns all bus stops currently loaded. On the first call (when
+	 * {@code actualizar} is true), it calls {@code leerDelArchivo} to read and
+	 * process the data. Subsequent calls return the cached map ({@code paradasMap})
+	 * directly.
 	 * 
 	 * @return a map containing all loaded stop objects.
 	 */
@@ -83,9 +110,12 @@ public class ParadaDAOArchivo implements ParadaDAO {
 
 	/**
 	 * Private method that contains the logic required to read and process the file.
+	 * Reads line by line, splits the data by the semicolon delimiter, and parses
+	 * the components (ID, address, latitude, longitude). Creates a new
+	 * {@code Parada} object and stores it in the result map.
 	 * 
 	 * @param ruta the route of the file to be read.
-	 * @return a map loaded with the stops.
+	 * @return a map loaded with the stops, or an empty map on failure.
 	 */
 	private Map<Integer, Parada> leerDelArchivo(String ruta) {
 		LOGGER.info("Comenzando la lectura del archivo de paradas: {}", ruta);
@@ -111,6 +141,11 @@ public class ParadaDAOArchivo implements ParadaDAO {
 		return paradas;
 	}
 
+	/**
+	 * Returns the configured path to the stop data file.
+	 * 
+	 * @return The file path string.
+	 */
 	public String getRutaArchivo() {
 		return rutaArchivo;
 	}

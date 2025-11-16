@@ -18,37 +18,65 @@ import colectivo.dao.LineaDAO;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
 import colectivo.logica.Calculo;
+import colectivo.logica.Recorrido;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
-import colectivo.modelo.Recorrido;
 import colectivo.modelo.Tramo;
 
+/**
+ * This test verifies the {@code Calculo} service (route finding logic), made
+ * specifically for the city Puerto Madryn. This test verifies the core business
+ * logic of the route calculation system, ensuring that all strategies (direct,
+ * bus-bus, walk-bus) work correctly under various conditions.
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 class TestCalcularRecorridoDAO {
 
+	/** Map containing all available stops, keyed by their integer code. */
 	private Map<Integer, Parada> paradas;
+
+	/** Map containing all available lines, keyed by their string code. */
 	private Map<String, Linea> lineas;
+
+	/** Map containing all available route segments, keyed by composite string. */
 	private Map<String, Tramo> tramos;
 
+	/** Day of the week used for schedule lookup. */
 	private int diaSemana;
-	private LocalTime horaLlegaParada;
-	
-	private Calculo calculo;	
 
+	/** Passenger's arrival time at the origin stop. */
+	private LocalTime horaLlegaParada;
+
+	/** The main business logic service under test. */
+	private Calculo calculo;
+
+	/**
+	 * Sets up the test environment before each test method runs. Uses the
+	 * {@code Factory} to retrieve and execute the DAO's {@code buscarTodos()}
+	 * method, loading the entire city model.
+	 * 
+	 * @throws Exception if data loading fails.
+	 */
 	@BeforeEach
 	void setUp() throws Exception {
 
-		paradas = ((ParadaDAO) Factory.getInstancia("PARADA")).buscarTodos();
-
-		tramos = ((TramoDAO) Factory.getInstancia("TRAMO")).buscarTodos();
-		
-		lineas = ((LineaDAO) Factory.getInstancia("LINEA")).buscarTodos();
+		paradas = (Factory.getInstancia("PARADA", ParadaDAO.class)).buscarTodos();
+		tramos = (Factory.getInstancia("TRAMO", TramoDAO.class)).buscarTodos();
+		lineas = (Factory.getInstancia("LINEA", LineaDAO.class)).buscarTodos();
 
 		diaSemana = 1; // lunes
 		horaLlegaParada = LocalTime.of(10, 35);
 
-		calculo = new Calculo();
+		calculo = new Calculo(lineas);
 	}
 
+	/**
+	 * Test case for a trip with no available service. Asserts that when querying a
+	 * known non-serviceable route, the result list is empty.
+	 */
 	@Test
 	void testSinColectivo() {
 		Parada paradaOrigen = paradas.get(66);
@@ -60,6 +88,12 @@ class TestCalcularRecorridoDAO {
 		assertTrue(recorridos.isEmpty());
 	}
 
+	/**
+	 * Test case for multiple direct bus routes. Verifies that the
+	 * {@code CalculoDirectoService} finds two direct routes (L1I and L5R) serving
+	 * the same stops, and confirms their correct departure times and total
+	 * duration.
+	 */
 	@Test
 	void testDirecto() {
 		Parada paradaOrigen = paradas.get(44);
@@ -104,6 +138,12 @@ class TestCalcularRecorridoDAO {
 
 	}
 
+	/**
+	 * Test case for multiple bus-to-bus transfer routes. Verifies that the
+	 * {@code CalculoBusBusService} finds two distinct 2-segment routes (L1I -> L5R
+	 * and L4R -> L5R) and verifies the schedules for all four resulting segments,
+	 * ensuring correct transfer times.
+	 */
 	@Test
 	void testConexion() {
 		Parada paradaOrigen = paradas.get(88);
@@ -190,6 +230,12 @@ class TestCalcularRecorridoDAO {
 		assertEquals(660, recorrido4.getDuracion());
 	}
 
+	/**
+	 * Test case for a three-segment Bus-Walk-Bus route. Verifies that the
+	 * {@code CalculoCaminandoService} finds the L2R -> Walk -> L6I route and
+	 * correctly calculates the three segments, including the walk duration and the
+	 * schedule gap before the final bus (L6I).
+	 */
 	@Test
 	void testConexionCaminando() {
 		Parada paradaOrigen = paradas.get(31);
@@ -197,15 +243,15 @@ class TestCalcularRecorridoDAO {
 
 		List<List<Recorrido>> recorridos = calculo.calcularRecorrido(paradaOrigen, paradaDestino, diaSemana,
 				horaLlegaParada, tramos);
-		
+
 		assertEquals(1, recorridos.size());
-		assertEquals(3, recorridos.get(0).size());		
+		assertEquals(3, recorridos.get(0).size());
 
 		Recorrido recorrido1 = recorridos.get(0).get(0);
 		Recorrido recorrido2 = recorridos.get(0).get(1);
 		Recorrido recorrido3 = recorridos.get(0).get(2);
-		
-		// recorrido1
+
+		// recorrido1 (L2R) verification
 		assertEquals(lineas.get("L2R"), recorrido1.getLinea());
 		List<Parada> paradas1 = new ArrayList<Parada>();
 		paradas1.add(paradas.get(31));
@@ -213,31 +259,30 @@ class TestCalcularRecorridoDAO {
 		paradas1.add(paradas.get(33));
 		paradas1.add(paradas.get(20));
 		paradas1.add(paradas.get(25));
-		paradas1.add(paradas.get(24));		
+		paradas1.add(paradas.get(24));
 		assertIterableEquals(paradas1, recorrido1.getParadas());
 		assertEquals(LocalTime.of(10, 39), recorrido1.getHoraSalida());
 		assertEquals(480, recorrido1.getDuracion());
-		
-		// recorrido2
-		assertNull(recorrido2.getLinea()); // Caminando
+
+		// recorrido2 (walk) verification
+		assertNull(recorrido2.getLinea());
 		List<Parada> paradas2 = new ArrayList<Parada>();
 		paradas2.add(paradas.get(24));
-		paradas2.add(paradas.get(75));		
+		paradas2.add(paradas.get(75));
 		assertIterableEquals(paradas2, recorrido2.getParadas());
 		assertEquals(LocalTime.of(10, 47), recorrido2.getHoraSalida());
 		assertEquals(120, recorrido2.getDuracion());
 
-		// recorrido3
+		// recorrido3 (L6I) verification
 		assertEquals(lineas.get("L6I"), recorrido3.getLinea());
 		List<Parada> paradas3 = new ArrayList<Parada>();
 		paradas3.add(paradas.get(75));
 		paradas3.add(paradas.get(76));
 		paradas3.add(paradas.get(38));
 		paradas3.add(paradas.get(40));
-		paradas3.add(paradas.get(66));		
+		paradas3.add(paradas.get(66));
 		assertIterableEquals(paradas3, recorrido3.getParadas());
 		assertEquals(LocalTime.of(11, 02), recorrido3.getHoraSalida());
 		assertEquals(600, recorrido3.getDuracion());
-
 	}
 }

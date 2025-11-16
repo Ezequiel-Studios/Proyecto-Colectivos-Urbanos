@@ -20,13 +20,43 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 
+/**
+ * Concrete implementation of {@code LineaDAO} using sequential files. This
+ * class implements the {@code LineaDAO} contract, handling persistence
+ * operations by reading and processing data from structured text files (as an
+ * alternative to a relational database).
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 public class LineaDAOArchivo implements LineaDAO {
 
+	/** Path to the main file containing line codes, names, and stop sequences. */
 	private String rutaArchivo;
+
+	/** Path to the file containing line frequencies/schedules. */
 	private String rutaArchivoFrecuencias;
+
+	/**
+	 * Map containing all available stops, obtained via {@code ParadaDAO} to resolve
+	 * stop IDs.
+	 */
 	private final Map<Integer, Parada> paradasDisponibles;
+
+	/**
+	 * Cache map where loaded {@code Linea} objects are stored after file
+	 * processing.
+	 */
 	private Map<String, Linea> lineasMap;
+
+	/**
+	 * Flag indicating if the cache needs to be refreshed by reading the files
+	 * again.
+	 */
 	private boolean actualizar;
+
+	/** Logger instance for logging events, errors and exceptions. */
 	private static final Logger LOGGER = LogManager.getLogger(LineaDAOArchivo.class);
 
 	/**
@@ -39,7 +69,8 @@ public class LineaDAOArchivo implements LineaDAO {
 		try (InputStream input = getClass().getClassLoader().getResourceAsStream("config.properties")) {
 
 			if (input == null) {
-				LOGGER.fatal("Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde LineaDAO).");
+				LOGGER.fatal(
+						"Error crítico: No se pudo encontrar 'config.properties' en la carpeta src (desde LineaDAO).");
 				throw new IOException("Archivo config.properties no encontrado en classpath.");
 			}
 
@@ -60,16 +91,19 @@ public class LineaDAOArchivo implements LineaDAO {
 		this.actualizar = true;
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void insertar(Linea linea) {
 
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void actualizar(Linea linea) {
 
 	}
 
+	/** Method not implemented in the current version. */
 	@Override
 	public void borrar(Linea linea) {
 
@@ -79,7 +113,7 @@ public class LineaDAOArchivo implements LineaDAO {
 	 * Returns all bus lines currently loaded. If the data needs to refreshed, reads
 	 * them from the file first.
 	 * 
-	 * @return a map containing all loaded line objects.
+	 * @return a map containing all loaded {@code Linea} objects.
 	 */
 	@Override
 	public Map<String, Linea> buscarTodos() {
@@ -99,8 +133,8 @@ public class LineaDAOArchivo implements LineaDAO {
 	 * Private method responsible for reading the lines, stops and frequencies from
 	 * their files.
 	 * 
-	 * @return a map containing all line objects with their associated stops and
-	 *         frequencies.
+	 * @return a map containing all {@code Linea} objects with their associated
+	 *         stops and frequencies.
 	 */
 	private Map<String, Linea> leerDelArchivo() {
 		Map<String, Linea> lineas = new LinkedHashMap<>();
@@ -158,13 +192,14 @@ public class LineaDAOArchivo implements LineaDAO {
 	}
 
 	/**
-	 * Private method that loads the map of bus stops.
+	 * Private method that loads the map of bus stops by requesting the
+	 * {@code ParadaDAO} implementation from the {@code Factory}.
 	 * 
 	 * @return the loaded map of stops.
 	 */
 	private Map<Integer, Parada> cargarParadas() {
 		try {
-			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA");
+			ParadaDAO paradaDAO = (ParadaDAO) Factory.getInstancia("PARADA", ParadaDAO.class);
 			return paradaDAO.buscarTodos();
 		} catch (Exception e) {
 			LOGGER.error("Error al obtener ParadaDAO desde la Factory en LineaDAO.", e);
@@ -172,6 +207,11 @@ public class LineaDAOArchivo implements LineaDAO {
 		}
 	}
 
+	/**
+	 * Returns the configured path to the main line data file.
+	 * 
+	 * @return The file path string.
+	 */
 	public String getRutaArchivo() {
 		return rutaArchivo;
 	}

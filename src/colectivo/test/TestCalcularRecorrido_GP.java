@@ -18,28 +18,56 @@ import colectivo.dao.LineaDAO;
 import colectivo.dao.ParadaDAO;
 import colectivo.dao.TramoDAO;
 import colectivo.logica.Calculo;
+import colectivo.logica.Recorrido;
 import colectivo.modelo.Linea;
 import colectivo.modelo.Parada;
-import colectivo.modelo.Recorrido;
 import colectivo.modelo.Tramo;
 
+/**
+ * Unit test for the {@code Calculo} service (route finding logic), made
+ * specifically for the city General Pico. This test verifies the core business
+ * logic of the route calculation system, ensuring that all strategies (direct,
+ * bus-bus, walk-bus) work correctly under various conditions.
+ * 
+ * @author Juliana Martin
+ * @author Ezequiel Ramos
+ * @author Nerea Toledo
+ */
 class TestCalcularRecorrido_GP {
 
+	/** Map containing all available stops, keyed by their integer code. */
 	private Map<Integer, Parada> paradas;
+
+	/** Map containing all available lines, keyed by their string code. */
 	private Map<String, Linea> lineas;
+
+	/** Map containing all available route segments, keyed by composite string. */
 	private Map<String, Tramo> tramos;
 
+	/** The main business logic service under test. */
 	private Calculo calculo;
 
+	/**
+	 * Sets up the test environment before each test method runs. Uses the
+	 * {@code Factory} to retrieve the necessary DAO implementations and loads the
+	 * full system model (stops, segments, lines) into memory.
+	 * 
+	 * @throws Exception if data loading fails (e.g., Factory or DAO issues).
+	 */
 	@BeforeEach
 	void setUp() throws Exception {
-		paradas = ((ParadaDAO) Factory.getInstancia("PARADA")).buscarTodos();
-		tramos = ((TramoDAO) Factory.getInstancia("TRAMO")).buscarTodos();
-		lineas = ((LineaDAO) Factory.getInstancia("LINEA")).buscarTodos();
+		paradas = (Factory.getInstancia("PARADA", ParadaDAO.class)).buscarTodos();
+		tramos = (Factory.getInstancia("TRAMO", TramoDAO.class)).buscarTodos();
+		lineas = (Factory.getInstancia("LINEA", LineaDAO.class)).buscarTodos();
 
-		calculo = new Calculo();
+		calculo = new Calculo(lineas);
 	}
 
+	/**
+	 * Test case for a trip with no available service. Asserts that when a query is
+	 * made for a non-existent route or for a time when all services are unavailable
+	 * (e.g., late Sunday), the result list is empty.
+	 */
 	@Test
 	void testSinColectivo() {
 		Parada paradaOrigen = paradas.get(91);
@@ -53,6 +81,12 @@ class TestCalcularRecorrido_GP {
 		assertTrue(recorridos.isEmpty());
 	}
 
+	/**
+	 * Test case for a direct bus route (highest priority strategy). Verifies that
+	 * the {@code CalculoDirectoService} finds exactly one segment, that the bus
+	 * line and stop sequence are correct, and that the calculated departure time
+	 * and total duration match the expected schedule.
+	 */
 	@Test
 	void testDirecto() {
 		Parada paradaOrigen = paradas.get(4);
@@ -82,6 +116,12 @@ class TestCalcularRecorrido_GP {
 		assertEquals(210, recorrido1.getDuracion());
 	}
 
+	/**
+	 * Test case for a single bus-to-bus transfer route. Verifies that the
+	 * {@code CalculoBusBusService} finds a two-segment route (Line L2 -> Line L1)
+	 * and correctly calculates the schedule for both segments, respecting the
+	 * layover time at the transfer stop.
+	 */
 	@Test
 	void testConexion() {
 		Parada paradaOrigen = paradas.get(70);
@@ -109,6 +149,12 @@ class TestCalcularRecorrido_GP {
 		assertEquals(690, recorrido2.getDuracion());
 	}
 
+	/**
+	 * Test case for a three-segment Bus-Walk-Bus route. Verifies that the
+	 * {@code CalculoCaminandoService} correctly finds the three segments (Bus A ->
+	 * Walk -> Bus C) and correctly calculates the total time, ensuring the walk
+	 * segment has a null line and the second bus waits for the walk to finish.
+	 */
 	@Test
 	void testConexionCaminando() {
 		Parada paradaOrigen = paradas.get(20);
